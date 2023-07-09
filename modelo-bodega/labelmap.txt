@@ -1,0 +1,13 @@
+0 Nada, Nada
+1 Tentacion, Victoria
+2 Platano de Seda, Granel
+3 Manzana Verde, Granel
+4 Mano, Mano
+5 Mayonesa, Alacena
+6 Ají Amarillo, Granel
+7 Mango, Granel
+8 Papa Blanca, Granel
+9 Piña, Granel
+10 Esencia de vainilla, Negrita
+11 Tari, Alacena
+12 Cebolla, Granel
