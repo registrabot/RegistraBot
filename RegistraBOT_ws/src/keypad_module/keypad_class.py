@@ -1,3 +1,5 @@
+## keypad_class.py
+
 import RPi.GPIO as GPIO
 import keypad_module.keypad_lib as keypad_lib
 
@@ -13,7 +15,7 @@ class KeypadController:
 
     def get_key(self):
         keypad = keypad_lib.Keypad(self.keys, self.rowsPins, self.colsPins, self.ROWS, self.COLS)
-        keypad.setDebounceTime(50)
+        keypad.setDebounceTime(10)
         while True:
             key = keypad.getKey()
             if key != keypad.NULL:

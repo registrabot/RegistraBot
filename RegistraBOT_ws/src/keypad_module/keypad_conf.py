@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO
-import keypad_module.keypad_class as keypad_class
+import keypad_module.keypad_class as KeypadController
 
 class KeypadModule:
     def __init__(self):
@@ -16,7 +16,7 @@ class KeypadModule:
         GPIO.setmode(GPIO.BCM)
 
     def get_key(self):
-        keypad = keypad_class.Keypad(self.keys, self.rowsPins, self.colsPins,self.ROWS, self.COLS)
+        keypad = KeypadController.Keypad(self.keys, self.rowsPins, self.colsPins,self.ROWS, self.COLS)
         keypad.setDebounceTime(50)
         while True:
             key = keypad.getKey()
