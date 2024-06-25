@@ -1,7 +1,29 @@
+## VProductClass.py
+
+import os
+import argparse
+import sys
+import time
+import threading
+import importlib.util
+import gspread
+import pandas as pd
+import cv2
+import imutils
+import re
+import sqlite3
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import datetime
+#from VElegirProducto import *
+
+# Añadir el directorio padre a sys.path
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
+from object_detection_module.PredictiveCamera import PredictiveCamera
 
 
 class ResizeImage(QWidget):
@@ -36,9 +58,33 @@ class ResizeImage(QWidget):
             painter.setRenderHint(QPainter.SmoothPixmapTransform)
             painter.drawPixmap(self.rect(), self.p)
 
-class VProducto(QMainWindow):
+class VProduct(QMainWindow):
+    weight_updated = pyqtSignal(float)
+    price_updated = pyqtSignal(float)
+    product_price_updated = pyqtSignal(float)
+    product_detected = pyqtSignal(str)
+
     def __init__(self):
         super().__init__()
+
+        # Inicializar variables globales
+        self.price_value_str = ""
+        self.weight_product = 0.000
+        self.price_value_float = 0.000
+        self.product_price = 0.000
+        self.product_list = []
+
+        # Construir rutas absolutas para los archivos del modelo
+        base_dir = os.path.dirname(__file__)
+        model_path = os.path.join(base_dir, '../modelo-registraBOT/model_unquant.tflite')
+        labels_path = os.path.join(base_dir, '../modelo-registraBOT/labels.txt')
+
+        self.predictive_camera = PredictiveCamera(model_path, labels_path)
+
+        # Inicializar Base de Datos
+        # Conectar a la base de datos
+        self.bdRegistrabot = sqlite3.connect('database_RegistraBOT/BD_RegistraBOT.db')
+        self.df_product_name = pd.read_sql_query("SELECT * FROM tb_catalogo_productos", self.bdRegistrabot)
 
         ## ======================================================
         ##              PRODUCT DETECTION WINDOW
@@ -64,7 +110,7 @@ class VProducto(QMainWindow):
         self.H3 = QFont("Tahoma", 11)
         self.H4 = QFont("Tahoma", 9)
         self.H5 = QFont("Tahoma", 19, QFont.Bold)
-        self.H6 = QFont("Tahoma", 14)
+        self.H6 = QFont("Tahoma", 10)
         self.H7 = QFont("Tahoma", 16, QFont.Bold)
 
         ## =================================================
@@ -221,8 +267,117 @@ class VProducto(QMainWindow):
 
         # Add widget in Product Label Vertical Layout
         self.layoutVC.addWidget(self._productLabel_wgt)
+
+        # Connect signals to slots
+        self.product_detected.connect(self.update_product_name_display)
+
+        # Función para inicializar la cámara
+        self.update_camera()
+
+        # Actualización de módulos
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_sensor_value)
+        self.timer.start(100)  # Cada 1000 milisegundos (1 segundo)
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_camera)
+        self.timer.start(50)  # Actualiza cada 50 milisegundos
     
     def update_clock(self):
         now = datetime.now().strftime("%H:%M:%S")
         self._time.setText(now)
         QTimer.singleShot(1000, self.update_clock)
+
+    def update_sensor_value(self):
+        self.calculate_product_price(self.price_value_float)
+        self._weightDataInput.setText(f"{self.weight_product:.2f}")
+    
+    def calculate_product_price(self,price):
+        self.product_price_weight = price
+        self.product_price = self.weight_product * self.product_price_weight
+        self._priceWeightDataInput.setText(f"{self.product_price_weight:.2f}")
+        self._totalPriceDataInput.setText(f"{self.product_price:.2f}")
+
+    def update_camera(self):
+        self.calculate_product_price(self.price_value_float)
+        self._weightDataInput.setText(f"{self.weight_product}")
+
+        frame, self.product_name = self.predictive_camera.get_frame()
+        if frame is not None:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            height, width, channel = frame_rgb.shape
+            bytes_per_line = 3 * width
+            qImg = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(qImg)
+            self._productdetectionBlock_wgt.setPixmap(pixmap)
+            self.product_detected.emit(self.product_name)
+    
+    def enter_price(self, price_value_str, key):
+        if key.isdigit():
+            price_value_str += key
+            price_value_float = float(price_value_str) if price_value_str else 0.0
+        elif key == '*':
+            if '.' not in price_value_str:
+                price_value_str += "."
+                if price_value_str.startswith("."):
+                    price_value_str = "0."
+            price_value_float = float(price_value_str) if price_value_str else 0.0
+        elif key == 'A':
+            price_value_str = price_value_str[:-1]
+            price_value_float = float(price_value_str) if price_value_str else 0.0
+        else:
+            price_value_float = float(price_value_str) if price_value_str else 0.0
+
+        return price_value_float, price_value_str
+    
+    def update_product_name_display(self):
+            
+            self.product_name_stripped = re.sub(r'^\d+\s*', '', self.product_name) # Eliminar los dígitos iniciales y el espacio usando una expresión regular
+            self.product_name_formatted = self.product_name_stripped.lower()
+            self.product_name_df = self.df_product_name[self.df_product_name['sku'].str.strip().str.lower() == self.product_name.strip().lower()]
+
+            if not self.product_name_df.empty:
+                # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
+                self.nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto_abreviado']
+                self._productNameLabel_wgt.setText(self.nombre_producto_abreviado)
+                print(f"Producto encontrado: {self.nombre_producto_abreviado}")
+            else:
+                self._productNameLabel_wgt.setText("Producto no encontrado")
+                print(f"No se encontró el SKU: {self.product_name}")
+
+    def agregar_elemento(self):
+        producto = self.product_details()
+        self.product_list.append(producto)
+        print(f"Elemento agregado: {producto}")
+        self._item.setText(f" {len(self.product_list)}")
+
+    def product_details(self):
+        product_label = self.nombre_producto_abreviado
+        weight_label = self.weight_product
+        price_label = self.product_price
+        product_price_unit_label = self.price_value_float
+        return [product_label, weight_label, product_price_unit_label, price_label]
+
+    def MatrixKeyPressEvent(self, key):
+        
+        if key == "B":
+            self.agregar_elemento()
+            self.price_value_str = ""
+            self.product_price_weight = 0.00
+            self.product_price = 0.00
+            self._priceWeightDataInput.setText(f"{self.product_price_weight}")
+            self._totalPriceDataInput.setText(f"{self.product_price}")
+
+        elif key == "C":
+            self.price_value_str = ""
+            self.product_price_weight = 0.00
+            self.product_price = 0.00
+            self._priceWeightDataInput.setText(f"{self.product_price_weight}")
+            self._totalPriceDataInput.setText(f"{self.product_price}")
+            self.hide()
+            return "VProductList"
+        
+        else:
+            self.price_value_float, self.price_value_str = self.enter_price(self.price_value_str, key)
+
+        return "VProduct"
