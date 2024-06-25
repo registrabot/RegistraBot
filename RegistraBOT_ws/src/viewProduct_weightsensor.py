@@ -1,5 +1,4 @@
 ## viewProduct_weightsensor.py
-
 import os
 import argparse
 import sys
@@ -10,6 +9,8 @@ import gspread
 import pandas as pd
 import cv2
 import imutils
+import re
+import sqlite3
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -59,7 +60,6 @@ class VProducto(QMainWindow):
     price_updated = pyqtSignal(float)
     product_price_updated = pyqtSignal(float)
     product_detected = pyqtSignal(str)
-    #key_pressed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -77,10 +77,15 @@ class VProducto(QMainWindow):
         self.predictive_camera = PredictiveCamera('modelo-registraBOT/model_unquant.tflite', 'modelo-registraBOT/labels.txt')
         self.buzzer = BuzzerController()
 
+        # Inicializar Base de Datos
+        # Conectar a la base de datos
+        self.bdRegistrabot = sqlite3.connect('database_RegistraBOT/BD_RegistraBOT.db')
+        self.df_product_name = pd.read_sql_query("SELECT * FROM tb_catalogo_productos", self.bdRegistrabot)
+
         # Inicializar variables globales
         self.price_value_str = ""
-        self.weight_product = 0.000  # Define como atributo de la clase
-        self.price_value_float = 0.000  # Define como atributo de la clase
+        self.weight_product = 0.000
+        self.price_value_float = 0.000
         self.product_price = 0.000
         self.product_list = []
 
@@ -268,8 +273,7 @@ class VProducto(QMainWindow):
         self.price_updated.connect(self.update_price_display)
         self.product_price_updated.connect(self.update_product_price_display)
         self.product_detected.connect(self.update_product_name_display)
-        #self.key_pressed.connect(self.key_event_listener)
-    
+
     def update_clock(self):
         now = datetime.now().strftime("%H:%M:%S")
         self._time.setText(now)
@@ -317,9 +321,23 @@ class VProducto(QMainWindow):
                 print(f"Error: {e}")
     
     def update_product_name_display(self):
-        self._productNameLabel_wgt.setText(self.product_name)
+        try:
+            self.product_name_stripped = re.sub(r'^\d+\s*', '', self.product_name) # Eliminar los dígitos iniciales y el espacio usando una expresión regular
+            self.product_name_formatted = self.product_name_stripped.lower()
+            self.product_name_df = self.df_product_name[self.df_product_name['sku'].str.strip().str.lower() == self.product_name.strip().lower()]
+            #self._productNameLabel_wgt.setText(self.product_name_df.iloc[0]['nombre_producto_abreviado'])
+            if not self.product_name_df.empty:
+                # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
+                nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto_abreviado']
+                self._productNameLabel_wgt.setText(nombre_producto_abreviado)
+                print(f"Producto encontrado: {nombre_producto_abreviado}")
+            else:
+                self._productNameLabel_wgt.setText("Producto no encontrado")
+                print(f"No se encontró el SKU: {self.product_name}")
+        except Exception as e:
+            self._productNameLabel_wgt.setText("Error al buscar producto")
+            print(f"Error en la consulta SQL: {e}")
 
-    
     def agregar_elemento(self):
         producto = self.product_details()
         self.product_list.append(producto)
@@ -334,17 +352,7 @@ class VProducto(QMainWindow):
     
     def obtener_tecla(self):
         self.keypad_module.get_key()
-    
-    #def key_event_listener(self):
-    #    while True:
-    #        key = self.keypad_module.get_key()
-    #        print('Tecla: ', key)
-    #        if key == 'B':
-    #            self.agregar_elemento()
-    #            self.key_pressed.emit(key)
-
-
-    
+  
     @pyqtSlot(float)
     def update_weight_display(self, weight):
         self._weightDataInput.setText(f"{weight:.2f}")
@@ -369,7 +377,3 @@ class VProducto(QMainWindow):
         camera_thread = threading.Thread(target=self.update_camera)
         camera_thread.daemon = True
         camera_thread.start()
-
-        #key_thread = threading.Thread(target=self.key_event_listener)
-        #key_thread.daemon = True
-        #key_thread.start()
