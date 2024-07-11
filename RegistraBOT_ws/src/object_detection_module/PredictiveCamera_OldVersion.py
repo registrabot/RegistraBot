@@ -10,19 +10,14 @@ class PredictiveCamera:
         self.interpreter = tf.lite.Interpreter(model_path=model_path)
         self.interpreter.allocate_tensors()
         self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            raise Exception("No se pudo abrir la cámara.")
 
     def load_labels(self, label_path):
         self.labels_array = []
-        try:
-            with open(label_path) as labels:
-                for line in labels:
-                    x = line.split(", ")
-                    producto = x[0].split(" ", 1)[1]
-                    self.labels_array.append([producto])
-        except FileNotFoundError:
-            raise Exception(f"No se encontró el archivo de etiquetas: {label_path}")
+        with open(label_path) as labels:
+            for line in labels:
+                x = line.split(", ")
+                producto = x[0].split(" ", 1)[1]
+                self.labels_array.append([producto])
         return self.labels_array
 
     def prepare_image(self, frame):
@@ -48,24 +43,18 @@ class PredictiveCamera:
         input_data[0] = normalized_image_array
         
         return input_data
-    
+
     def interpret_output(self, output_data):
         max_value = np.max(output_data)
         max_index = np.argmax(output_data)
         producto_det = self.labels_array[max_index]
-        
         if max_value > 0.85:
-            return producto_det[0], max_value
-        else:
-            tres_valores_altos = self.tres_valores_mas_altos(output_data)
-            posiciones_tres_valores_altos = self.posiciones_tres_valores_mas_altos(output_data)
-            productos_seleccionados = self.productos_por_posiciones(self.labels_array, posiciones_tres_valores_altos)
-            return tres_valores_altos, productos_seleccionados
+           return producto_det[0]
 
     def get_frame(self):
         ret, frame = self.cap.read()
         if not ret:
-            return None, None, None
+            return None, None
 
         input_data = self.prepare_image(frame)
 
@@ -76,14 +65,18 @@ class PredictiveCamera:
         output_details = self.interpreter.get_output_details()
         output_data = self.interpreter.get_tensor(output_details[0]['index'])[0]
         
-        result = self.interpret_output(output_data)
+        product_name = self.interpret_output(output_data)
 
-        if isinstance(result[0], float):  # Check if the result is a single value and product name
-            product_name, max_value = result
-            return frame, product_name, max_value
-        else:
-            tres_valores_altos, productos_seleccionados = result
-            return frame, tres_valores_altos, productos_seleccionados
+        tres_valores_altos = self.tres_valores_mas_altos(output_data)
+        print("Los tres valores más altos son:", tres_valores_altos)
+
+        posiciones_tres_valores_altos = self.posiciones_tres_valores_mas_altos(output_data)
+        print("Las posiciones de los tres valores más altos son:", posiciones_tres_valores_altos)
+
+        productos_seleccionados = self.productos_por_posiciones(self.labels_array, posiciones_tres_valores_altos)
+        print("Productos seleccionados:", productos_seleccionados)
+
+        return frame, product_name
     
     def tres_valores_mas_altos(self, array):
         # Ordenar el array en orden descendente
@@ -102,16 +95,10 @@ class PredictiveCamera:
         return tres_indices
 
     def productos_por_posiciones(self, array_productos, posiciones):
-        productos_seleccionados = []
-        for pos in posiciones:
-            if pos < len(array_productos):
-                productos_seleccionados.append(array_productos[pos])
-            else:
-                print(f"Índice {pos} fuera de rango.")
+        productos_seleccionados = [array_productos[pos] for pos in posiciones]
         return productos_seleccionados
     
     
     def __del__(self):
-        if self.cap.isOpened():
-            self.cap.release()
+        self.cap.release()
         cv2.destroyAllWindows()
