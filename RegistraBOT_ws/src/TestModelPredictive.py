@@ -8,6 +8,11 @@ import sqlite3
 import pandas as pd
 import os
 import re
+import cv2
+from collections import deque
+import numpy as np
+from view_module.VChooseProductClass import VElegirProducto
+import sys
 
 class ResizeImage(QWidget):
     def __init__(self, parent=None):
@@ -57,12 +62,6 @@ class VProducto(QMainWindow):
         # Conectar a la base de datos
         self.bdRegistrabot = sqlite3.connect('database_RegistraBOT/BD_RegistraBOT.db')
         self.df_product_name = pd.read_sql_query("SELECT * FROM tb_catalogo_productos", self.bdRegistrabot)
-
-        # Verificar las columnas del DataFrame
-        #print("Columnas del DataFrame:", self.df_product_name.columns)
-
-        # Verificar algunos valores de la columna 'sku'
-        #print("Valores de la columna 'sku':", self.df_product_name['sku'].head())
         
         # Inicializar variables globales
         self.price_value_str = ""
@@ -70,9 +69,7 @@ class VProducto(QMainWindow):
         self.price_value_float = 0.000
         self.product_price = 0.000
         self.product_list = []
-
-        # Inicializar Función de hilos en paralelo
-        self.initThreads()
+        self.threshold_count = 0
 
         # Inicializar formato de Ventana Producto 
         self.setWindowTitle("Ventana Producto")
@@ -256,58 +253,98 @@ class VProducto(QMainWindow):
         #self.product_price_updated.connect(self.update_product_price_display)
         self.product_detected.connect(self.update_product_name_display)
 
+        # Función para inicializar la cámara
+        self.update_camera()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_camera)
+        self.timer.start(50)  # Actualiza cada 50 milisegundos
+
     def update_clock(self):
         now = datetime.now().strftime("%H:%M:%S")
         self._time.setText(now)
         QTimer.singleShot(1000, self.update_clock)
 
     def update_camera(self):
-        while True:
-            try:
-                frame, self.product_name = self.predictive_camera.get_frame()
-                if frame is not None:
-                    height, width, channel = frame.shape
-                    bytes_per_line = 3 * width
-                    qImg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
-                    pixmap = QPixmap.fromImage(qImg)
-                    self._productdetectionBlock_wgt.setPixmap(pixmap)
-                    self.product_detected.emit(self.product_name)
-            except Exception as e:
-                print(f"Error: {e}")
-    
+
+        frame, result1, result2 = self.predictive_camera.get_frame()
+        if frame is not None:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            height, width, channel = frame_rgb.shape
+            bytes_per_line = 3 * width
+            qImg = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(qImg)
+            self._productdetectionBlock_wgt.setPixmap(pixmap)
+
+        # Verifica si result1 es un string (nombre del producto) o una lista (tres valores más altos)
+        if isinstance(result1, str):
+            self.product_name = result1
+            self.max_value = result2
+            self.threshold_count = 0  # Reset counter if a high confidence prediction is made
+            self.product_detected.emit(self.product_name)
+            print('====================================')
+            print('Mayor a 0.85')
+            print('====================================')
+        else:
+            self.threshold_count += 1
+            if self.threshold_count >= 50:
+                print('====================================')
+                print('Menor a 0.85')
+                print('====================================')
+                tres_valores_altos = result1
+                print('Tres valores altos:', tres_valores_altos)
+                productos_seleccionados = result2
+                print('Productos seleccionados:', productos_seleccionados)
+
+                skus = [producto[0].strip() for producto in productos_seleccionados]
+
+                # Asegurarse de usar el nombre correcto de la columna SKU
+                productos_info = self.df_product_name[self.df_product_name['sku'].isin(skus)]
+                
+                print('Productos_info: ', productos_info)
+
+                self.threshold_count = 0
+                self.timer.stop()
+
+                print("Abriendo ventana VElegirProducto...")
+                ventanaChoose.create_product_block(productos_info)
+                ventanaChoose.show()
+
     def update_product_name_display(self):
         try:
             self.product_name_stripped = re.sub(r'^\d+\s*', '', self.product_name) # Eliminar los dígitos iniciales y el espacio usando una expresión regular
             self.product_name_formatted = self.product_name_stripped.lower()
             self.product_name_df = self.df_product_name[self.df_product_name['sku'].str.strip().str.lower() == self.product_name.strip().lower()]
-            #self._productNameLabel_wgt.setText(self.product_name_df.iloc[0]['nombre_producto_abreviado'])
+            self.product_categoria = ''
             if not self.product_name_df.empty:
                 # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
                 nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto_abreviado']
+                product_categoria = self.product_name_df.iloc[0]['categoria_producto']
                 self._productNameLabel_wgt.setText(nombre_producto_abreviado)
                 print(f"Producto encontrado: {nombre_producto_abreviado}")
+                print(f'Categoria encontrado : {product_categoria}')
             else:
                 self._productNameLabel_wgt.setText("Producto no encontrado")
                 print(f"No se encontró el SKU: {self.product_name}")
+
+            if (product_categoria=="Granel"):
+                self._weightLabel.setText('Peso (Kg)')
+                self._priceWeightLabel.setText('Precio x Kg')
+                self._weightDataInput.setText(f"{self.weight_product}")
+            else:
+                self._weightLabel.setText('Cantidad')
+                self.weight_product = 1
+                self._priceWeightLabel.setText('Precio Unitario')
+
         except Exception as e:
             self._productNameLabel_wgt.setText("Error al buscar producto")
             print(f"Error en la consulta SQL: {e}")
-    
-    def initThreads(self):
-        #weight_thread = threading.Thread(target=self.update_weight)
-        #weight_thread.daemon = True
-        #weight_thread.start()
 
-        #price_thread = threading.Thread(target=self.update_price)
-        #price_thread.daemon = True
-        #price_thread.start()
-
-        camera_thread = threading.Thread(target=self.update_camera)
-        camera_thread.daemon = True
-        camera_thread.start()
 
 if __name__ == "__main__":
     app = QApplication([])
     ventana = VProducto()
+    ventanaChoose = VElegirProducto()
+
     ventana.show()
     app.exec_()

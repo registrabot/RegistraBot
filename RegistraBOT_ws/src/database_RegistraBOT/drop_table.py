@@ -7,10 +7,11 @@ conn = sqlite3.connect('BD_RegistraBOT.db')
 cursor = conn.cursor()
 
 # Definir el nombre de la tabla que quieres eliminar
-nombre_tabla = 'tb_catalogo_productos'
-
+nombre_tabla1 = 'tb_catalogo_productos'
+nombre_tabla2 = 'tb_registro_ventas'
 # Ejecutar el comando DROP TABLE
-cursor.execute(f'DROP TABLE IF EXISTS {nombre_tabla}')
+cursor.execute(f'DROP TABLE IF EXISTS {nombre_tabla1}')
+cursor.execute(f'DROP TABLE IF EXISTS {nombre_tabla2}')
 conn.commit()
 
 # Cerrar la conexión

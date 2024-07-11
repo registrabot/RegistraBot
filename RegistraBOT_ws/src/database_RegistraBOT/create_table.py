@@ -4,6 +4,10 @@ import sqlite3
 conn = sqlite3.connect('BD_RegistraBOT.db')
 cursor = conn.cursor()
 
+
+## =================================================
+##       CREATE TABLE tb_catalogo_productos
+## =================================================
 # Crear la tabla con la nueva columna insert_date
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS tb_catalogo_productos (
@@ -17,6 +21,25 @@ cursor.execute('''
         nombre_producto TEXT NOT NULL,
         nombre_producto_abreviado TEXT,
         path_image TEXT NOT NULL,
+        insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+''')
+
+## =================================================
+##       CREATE TABLE tb_registro_ventas
+## =================================================
+# Crear la tabla con la nueva columna insert_date
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS tb_registro_ventas (
+        id_ventas INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_bodega TEXT NOT NULL,
+        sku TEXT NOT NULL,
+        precio_unitario FLOAT NOT NULL,
+        precio_total FLOAT NOT NULL,
+        fecha TIMESTAMP NOT NULL,
+        hora TIMESTAMP NOT NULL,
+        medio_pago TEXT NOT NULL,
+        estado_venta TEXT NOT NULL,
         insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 ''')
