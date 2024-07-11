@@ -337,7 +337,7 @@ class VProduct(QMainWindow):
 
             if not self.product_name_df.empty:
                 # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
-                self.nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto_abreviado']
+                self.nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto'][:20] # Obtenemos solo los primeros 20 caracteres
                 self._productNameLabel_wgt.setText(self.nombre_producto_abreviado)
                 print(f"Producto encontrado: {self.nombre_producto_abreviado}")
             else:
