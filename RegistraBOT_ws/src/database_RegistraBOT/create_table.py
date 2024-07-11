@@ -17,9 +17,10 @@ cursor.execute('''
         subcategoria_producto TEXT NOT NULL,
         tipo_envase TEXT NOT NULL,
         marca TEXT NOT NULL,
-        tamaño INTEGER,
+        tamaño REAL,
         nombre_producto TEXT NOT NULL,
-        nombre_producto_abreviado TEXT,
+        unidad_medida TEXT,
+        empresa_fabricante TEXT,
         path_image TEXT NOT NULL,
         insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
