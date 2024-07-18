@@ -123,13 +123,16 @@ class VElegirProducto(QMainWindow):
         self.layoutVC.addWidget(self._navBar_wgt)
 
     def create_product_block(self, productos_info):
+
+        self.clearLayout(self.layoutVC)
+
         self._productsBlock_wgt = QLabel(self.central_wgt)
         self._productsBlock_wgt.setFixedHeight(226)
         self._productsBlockHC = QHBoxLayout(self._productsBlock_wgt)
         self._productsBlockHC.setSpacing(20)
         self._productsBlockHC.setContentsMargins(0, 0, 0, 0)
 
-        product_info = []
+        self.product_info = []
         select_option = 1
 
         for index, row in productos_info.iterrows():
@@ -138,14 +141,14 @@ class VElegirProducto(QMainWindow):
             label_text = row['nombre_producto']  # Nombre del producto desde los datos
             select_option +=1
         
-            product_info.append({
+            self.product_info.append({
                 'image_path': image_path,
                 'label_num': label_num,
                 'label_text': label_text
             })
 
-        print(product_info)
-        for info in product_info:
+        print(self.product_info)
+        for info in self.product_info:
             self.create_product(self._productsBlockHC, info['image_path'], info['label_num'], info['label_text'])
 
         self.layoutVC.addWidget(self._productsBlock_wgt)
@@ -190,3 +193,14 @@ class VElegirProducto(QMainWindow):
         now = datetime.now().strftime("%H:%M:%S")
         self._time.setText(now)
         QTimer.singleShot(1000, self.update_clock)
+
+    def clearLayout(self, layout):
+        n=1
+        if layout is not None:
+            while layout.count()>1:
+                item = layout.takeAt(n)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clearLayout(item.layout())
