@@ -1,15 +1,9 @@
 ## VProductClass.py
 
 import os
-import argparse
 import sys
-import time
-import threading
-import importlib.util
-import gspread
 import pandas as pd
 import cv2
-import imutils
 import re
 import sqlite3
 
@@ -17,6 +11,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import datetime
+
+from view_module.VChooseProductClass import VElegirProducto
 
 # Añadir el directorio padre a sys.path
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -72,6 +68,11 @@ class VProduct(QMainWindow):
         self.price_value_float = 0.000
         self.product_price = 0.000
         self.product_list = []
+        self.threshold_count = 0
+        self.ChooseView=False
+        self.seleccion=False
+        self.product_categoria = ''
+        self.V_ChooseProduct = VElegirProducto()
 
         # Construir rutas absolutas para los archivos del modelo
         base_dir = os.path.dirname(__file__)
@@ -274,13 +275,14 @@ class VProduct(QMainWindow):
         self.update_camera()
 
         # Actualización de módulos
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_sensor_value)
-        self.timer.start(100)  # Cada 1000 milisegundos (1 segundo)
+        self.timer1 = QTimer(self)
+        self.timer1.timeout.connect(self.update_sensor_value)
+        self.timer1.start(100)  # Cada 1000 milisegundos (1 segundo)
 
         self.timer = QTimer(self)
+        self.timer.setInterval(50)
         self.timer.timeout.connect(self.update_camera)
-        self.timer.start(50)  # Actualiza cada 50 milisegundos
+        self.timer.start()  # Actualiza cada 50 milisegundos
     
     def update_clock(self):
         now = datetime.now().strftime("%H:%M:%S")
@@ -289,7 +291,10 @@ class VProduct(QMainWindow):
 
     def update_sensor_value(self):
         self.calculate_product_price(self.price_value_float)
-        self._weightDataInput.setText(f"{self.weight_product:.2f}")
+        if self.product_categoria == "Granel":
+            self._weightDataInput.setText(f"{self.weight_product:.2f}")
+        else:
+            self._weightDataInput.setText(f"{1}")
     
     def calculate_product_price(self,price):
         self.product_price_weight = price
@@ -297,19 +302,90 @@ class VProduct(QMainWindow):
         self._priceWeightDataInput.setText(f"{self.product_price_weight:.2f}")
         self._totalPriceDataInput.setText(f"{self.product_price:.2f}")
 
-    def update_camera(self):
-        self.calculate_product_price(self.price_value_float)
-        self._weightDataInput.setText(f"{self.weight_product}")
 
-        frame, self.product_name = self.predictive_camera.get_frame()
-        if frame is not None:
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            height, width, channel = frame_rgb.shape
-            bytes_per_line = 3 * width
-            qImg = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
-            pixmap = QPixmap.fromImage(qImg)
-            self._productdetectionBlock_wgt.setPixmap(pixmap)
-            self.product_detected.emit(self.product_name)
+    def update_camera(self):
+
+        if self.seleccion is False:
+            
+            self.frame, self.result1, self.result2 = self.predictive_camera.get_frame()
+   
+            if self.frame is not None:
+                frame_rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+                height, width, channel = frame_rgb.shape
+                bytes_per_line = 3 * width
+                qImg = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                pixmap = QPixmap.fromImage(qImg)
+                self._productdetectionBlock_wgt.setPixmap(pixmap)
+
+            # Verifica si result1 es un string (nombre del producto) o una lista (tres valores más altos)
+        
+            if isinstance(self.result1, str):
+                self.seleccion = False
+                self.product_name = self.result1
+                self.max_value = self.result2
+                self.threshold_count = 0  # Reset counter if a high confidence prediction is made
+                self.product_detected.emit(self.product_name)
+                print('====================================')
+                print('Mayor a 0.85')
+                print('====================================')
+
+            else:
+                
+                self.threshold_count += 1
+                if self.threshold_count >= 50:
+                    self.seleccion = True
+                    print('====================================')
+                    print('Menor a 0.85')
+                    print('====================================')
+                    tres_valores_altos = self.result1
+                    print('Tres valores altos:', tres_valores_altos)
+                    productos_seleccionados = self.result2
+                    print('Productos seleccionados:', productos_seleccionados)
+
+                    skus = [producto[0].strip() for producto in productos_seleccionados]
+
+                    # Asegurarse de usar el nombre correcto de la columna SKU
+                    productos_info = self.df_product_name[self.df_product_name['sku'].isin(skus)]
+                    
+                    print('Productos_info: ', productos_info)
+
+                    self.threshold_count = 0
+
+                    print("Abriendo ventana VElegirProducto...")
+                    self.V_ChooseProduct.create_product_block(productos_info)
+                    self.V_ChooseProduct.show()
+                    productos_info =[]
+                    
+
+    def update_product_name_display(self):
+        try:
+            self.product_name_stripped = re.sub(r'^\d+\s*', '', self.product_name) # Eliminar los dígitos iniciales y el espacio usando una expresión regular
+            self.product_name_formatted = self.product_name_stripped.lower()
+            self.product_name_df = self.df_product_name[self.df_product_name['sku'].str.strip().str.lower() == self.product_name.strip().lower()]
+            
+            if not self.product_name_df.empty:
+                # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
+                self.nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto']
+                self.product_categoria = self.product_name_df.iloc[0]['categoria_producto']
+                self._productNameLabel_wgt.setText(self.nombre_producto_abreviado)
+                print(f"Producto encontrado: {self.nombre_producto_abreviado}")
+                print(f'Categoria encontrado : {self.product_categoria}')
+            else:
+                self._productNameLabel_wgt.setText("Producto no encontrado")
+                print(f"No se encontró el SKU: {self.product_name}")
+
+            if (self.product_categoria=="Granel"):
+                self._weightLabel.setText('Peso (Kg)')
+                self._priceWeightLabel.setText('Precio x Kg')
+
+            else:
+                self._weightLabel.setText('Cantidad')
+                self._priceWeightLabel.setText('Precio Unitario')             
+
+        except Exception as e:
+            self._productNameLabel_wgt.setText("Error al buscar producto")
+            print(f"Error en la consulta SQL: {e}")
+            
     
     def enter_price(self, price_value_str, key):
         if key.isdigit():
@@ -329,21 +405,6 @@ class VProduct(QMainWindow):
 
         return price_value_float, price_value_str
     
-    def update_product_name_display(self):
-            
-            self.product_name_stripped = re.sub(r'^\d+\s*', '', self.product_name) # Eliminar los dígitos iniciales y el espacio usando una expresión regular
-            self.product_name_formatted = self.product_name_stripped.lower()
-            self.product_name_df = self.df_product_name[self.df_product_name['sku'].str.strip().str.lower() == self.product_name.strip().lower()]
-
-            if not self.product_name_df.empty:
-                # Obtener el valor de 'nombre_producto_abreviado' de la primera fila
-                self.nombre_producto_abreviado = self.product_name_df.iloc[0]['nombre_producto'][:20] # Obtenemos solo los primeros 20 caracteres
-                self._productNameLabel_wgt.setText(self.nombre_producto_abreviado)
-                print(f"Producto encontrado: {self.nombre_producto_abreviado}")
-            else:
-                self._productNameLabel_wgt.setText("Producto no encontrado")
-                print(f"No se encontró el SKU: {self.product_name}")
-
     def agregar_elemento(self):
         producto = self.product_details()
         self.product_list.append(producto)
@@ -352,31 +413,50 @@ class VProduct(QMainWindow):
 
     def product_details(self):
         product_label = self.nombre_producto_abreviado
-        weight_label = self.weight_product
+        if self.product_categoria == "Granel":
+            weight_label = self.weight_product
+        else:
+            weight_label = 1
         price_label = self.product_price
         product_price_unit_label = self.price_value_float
         return [product_label, weight_label, product_price_unit_label, price_label]
 
     def MatrixKeyPressEvent(self, key):
-        
-        if key == "B":
-            self.agregar_elemento()
-            self.price_value_str = ""
-            self.product_price_weight = 0.00
-            self.product_price = 0.00
-            self._priceWeightDataInput.setText(f"{self.product_price_weight}")
-            self._totalPriceDataInput.setText(f"{self.product_price}")
 
-        elif key == "C":
-            self.price_value_str = ""
-            self.product_price_weight = 0.00
-            self.product_price = 0.00
-            self._priceWeightDataInput.setText(f"{self.product_price_weight}")
-            self._totalPriceDataInput.setText(f"{self.product_price}")
-            self.hide()
-            return "VProductList"
-        
-        else:
-            self.price_value_float, self.price_value_str = self.enter_price(self.price_value_str, key)
+        print(self.V_ChooseProduct.isVisible())
+      
+        if self.V_ChooseProduct.isVisible() is True:
+            if key == "1" or key == "2" or key == "3":
+                self.nombre_producto_abreviado=self.V_ChooseProduct.product_info[int(key)-1]["label_text"]
+                self._productNameLabel_wgt.setText(self.nombre_producto_abreviado)
+                self.V_ChooseProduct.hide()
+                self.seleccion=True
+
+            print(self.nombre_producto_abreviado)
+            
+
+        elif self.V_ChooseProduct.isVisible() is False:
+            if key == "B":
+                self.agregar_elemento()
+                self.price_value_str = ""
+                self.product_price_weight = 0.00
+                self.product_price = 0.00
+                self._priceWeightDataInput.setText(f"{self.product_price_weight}")
+                self._totalPriceDataInput.setText(f"{self.product_price}")
+                self.seleccion=False
+
+            elif key == "C":
+                self.price_value_str = ""
+                self.product_price_weight = 0.00
+                self.product_price = 0.00
+                self._priceWeightDataInput.setText(f"{self.product_price_weight}")
+                self._totalPriceDataInput.setText(f"{self.product_price}")
+                self.hide()
+                return "VProductList"
+            
+            else:
+                self.price_value_float, self.price_value_str = self.enter_price(self.price_value_str, key)
 
         return "VProduct"
+   
+
