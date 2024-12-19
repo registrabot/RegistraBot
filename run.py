@@ -2,12 +2,12 @@ import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from VentanaEmpaquetado import VentanaProducto
-from VentanaMetodoPago import VCashTypes
-from VentanaVentaFinalizada import VSalesFinish
+from frontend.ui.main_window import DetectionWindows
+from frontend.widgets.payment_method_widget import PaymentMethod
+from frontend.widgets.sale_completion_widget import SaleCompletion
 
 
-class MainWindow(QMainWindow):
+class MainWindow_RB(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("RegistraBOT_Views")
@@ -15,7 +15,7 @@ class MainWindow(QMainWindow):
         #self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
 
         # Inicializar la ventana de empaquetado
-        self.vEmpaquetado = VentanaProducto()
+        self.vEmpaquetado = DetectionWindows()
         self.setCentralWidget(self.vEmpaquetado)
 
         # Conectar la señal del botón de registrar venta
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def show_cash_types(self):
         # Mostrar la ventana de métodos de pago
-        self.vCashTypes = VCashTypes(self)
+        self.vCashTypes = PaymentMethod(self)
         self.vCashTypes.show_in_center(self.vEmpaquetado.geometry())
         self.vCashTypes.show()
 
@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
     def show_sales_finish(self):
 
         # Mostrar la ventana de venta finalizada
-        self.vSalesFinish = VSalesFinish(self)
+        self.vSalesFinish = SaleCompletion(self)
         self.vSalesFinish.show_in_center(self.vEmpaquetado.geometry())
         self.vSalesFinish.show()
 
@@ -50,6 +50,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    main_window = MainWindow()
+    main_window = MainWindow_RB()
     main_window.show()
     sys.exit(app.exec_())

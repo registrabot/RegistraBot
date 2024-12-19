@@ -5,6 +5,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 from PyQt5.QtCore import Qt
+
+parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
+
 class ProductWidget(QWidget):
     def __init__(self, name, unit_price, update_total_callback, quantity=1, weight=0, is_bulk=False):
         super().__init__()
@@ -74,7 +77,7 @@ class ProductWidget(QWidget):
 
             # Botón de eliminar
             self.btn_delete = QPushButton(self)
-            pixmap = QPixmap("../Imagenes/tachito.png")
+            pixmap = QPixmap(parent_dir + "/tachito.png")
             self.btn_delete.setIcon(QIcon(pixmap))
             self.btn_delete.setIconSize(pixmap.size())  # Ajustar el tamaño del icono al tamaño original de la imagen
             #self.btn_delete.setFixedSize(pixmap.size())
@@ -92,7 +95,7 @@ class ProductWidget(QWidget):
 
             # Botón de eliminar solo para productos a granel
             self.btn_delete_bulk = QPushButton( self)
-            pixmap = QPixmap("../Imagenes/tachito.png")
+            pixmap = QPixmap(parent_dir + "/tachito.png")
             self.btn_delete_bulk.setIcon(QIcon(pixmap))
             self.btn_delete_bulk.setIconSize(pixmap.size())  # Ajustar el tamaño del icono al tamaño original de la imagen
             #self.btn_delete_bulk.setFixedSize(pixmap.size())  # Ajustar el tamaño del botón al tamaño de la imagen

@@ -3,7 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-class WTecladoNumerico(QWidget):
+class NumericKeyboard(QWidget):
     numero_actualizado = pyqtSignal(str)
     def __init__(self):
         super().__init__()

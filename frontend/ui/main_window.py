@@ -1,14 +1,20 @@
-## VentanaEmpaquetado.py
-
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import datetime
-from WidgetTecladoNumerico import WTecladoNumerico
-from WidgetCarrito import ShoppingCart
 
-class VentanaProducto(QMainWindow):
+# Obtener el path absoluto de la carpeta externa
+parent_dir = '/home/pato/RegistraBot/frontend/'
+
+# Añadirlo al sys.path
+sys.path.append(parent_dir)
+print('Updated sys.path:', sys.path)
+
+from widgets.numeric_keyboard_widget import NumericKeyboard
+from widgets.shopping_cart_widget import ShoppingCart
+
+class DetectionWindows(QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -48,7 +54,7 @@ class VentanaProducto(QMainWindow):
         # Detection Panel (Frame)
         self.frameDetectionPanel = QLabel(self.mainFrame)
         self.frameDetectionPanel.setGeometry(0, 0, 600, 427)
-        self.frameDetectionPanel.setPixmap(QPixmap("../Imagenes/Supermercado.png"))
+        self.frameDetectionPanel.setPixmap(QPixmap(parent_dir + "/assets/images/Supermercado.png"))
         self.frameDetectionPanel.setScaledContents(True)
         
         self.frameDetectionPanelVC = QVBoxLayout(self.frameDetectionPanel)
@@ -63,7 +69,7 @@ class VentanaProducto(QMainWindow):
 
         # Rb Image
         self.rbImageBar = QLabel(self.frameBar)
-        self.rbImageBar.setPixmap(QPixmap("../Imagenes/logoRb.png"))
+        self.rbImageBar.setPixmap(QPixmap(parent_dir + "/assets/images/logoRb.png"))
         self.rbImageBar.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
         # Rb Label
@@ -107,7 +113,7 @@ class VentanaProducto(QMainWindow):
 
             # Image Product
         self.imageBoxProduct = QLabel(self.boxProduct)
-        self.imageBoxProduct.setPixmap(QPixmap("../Imagenes/Lentejas.png"))
+        self.imageBoxProduct.setPixmap(QPixmap(parent_dir + "/assets/images/Lentejas.png"))
 
             # Items Product
         self.itemsProduct = QLabel(self.boxProduct)
@@ -219,7 +225,7 @@ class VentanaProducto(QMainWindow):
         self.layoutVC.addWidget(self.frameWorkPanel)
 
         # Teclado Numerico
-        self.teclado_numerico = WTecladoNumerico()
+        self.teclado_numerico = NumericKeyboard()
         self.teclado_numerico.setFixedSize(600, 566)
         self.teclado_numerico.numero_actualizado.connect(self.update_preciovalue)
         self.teclado_numerico.hide()

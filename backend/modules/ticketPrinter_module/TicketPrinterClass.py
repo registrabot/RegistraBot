@@ -2,10 +2,10 @@ import os
 import sys
 import time
 from tabulate import tabulate
-print('Original sys.path:', sys.path)
-sys.path.append('/home/pato/rb_workspace/PrimerPrototipo/RegistraBOT_ws/src/ticketprinter_module/Python-Thermal-Printer')
-print('Updated sys.path:', sys.path)
-from Adafruit_Thermal import *
+
+sys.path.append('/home/pato/RegistraBot/backend/modules/ticketPrinter_module/')
+
+from PythonThermalPrinter.Adafruit_Thermal import *
 
 class TicketPrinter:
     def __init__(self):

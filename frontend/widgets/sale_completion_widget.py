@@ -1,15 +1,17 @@
-## VentanaVentaFinalizada.py
-
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from time import sleep
 import sqlite3
-#from ticketprinter_module.TicketPrinterClass import TicketPrinter
 import numpy as np
 
-class VSalesFinish(QDialog):
+# Agregar el directorio al sistema de rutas
+sys.path.append('/home/pato/RegistraBot/backend/modules/')
+parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
+from ticketPrinter_module.TicketPrinterClass import TicketPrinter   
+
+class SaleCompletion(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Ventana Venta Finalizada")
@@ -46,7 +48,7 @@ class VSalesFinish(QDialog):
 
         # Image
         self.imageCheck = QLabel(self.mainFrame)
-        self.imageCheck.setPixmap(QPixmap("../Imagenes/CheckCircleFill.png"))
+        self.imageCheck.setPixmap(QPixmap(parent_dir + "/CheckCircleFill.png"))
         self.imageCheck.setAlignment(Qt.AlignCenter)
 
         # Label
@@ -60,7 +62,7 @@ class VSalesFinish(QDialog):
         self.botonImprimir.setFont(self.H2)
         self.botonImprimir.setAutoFillBackground(False)
         self.botonImprimir.setStyleSheet("background-color: #639C3B; color: white; border-radius: 15px;")
-        self.botonImprimir.setIcon(QIcon("../Imagenes/Sticky.png"))
+        self.botonImprimir.setIcon(QIcon(parent_dir + "/Sticky.png"))
         self.botonImprimir.setIconSize(QSize(44, 44))
         self.botonImprimir.setFlat(True)
         self.botonImprimir.setLayoutDirection(Qt.RightToLeft)
@@ -72,7 +74,7 @@ class VSalesFinish(QDialog):
         self.botonSalir.setFont(self.H2)
         self.botonSalir.setAutoFillBackground(False)
         self.botonSalir.setStyleSheet("background-color: #939393; color: white; border-radius: 15px;")
-        self.botonSalir.setIcon(QIcon("../Imagenes/X.png"))
+        self.botonSalir.setIcon(QIcon(parent_dir + "/X.png"))
         self.botonSalir.setIconSize(QSize(44, 44))
         self.botonSalir.setFlat(True)
         self.botonSalir.setLayoutDirection(Qt.RightToLeft)

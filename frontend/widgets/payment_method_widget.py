@@ -1,11 +1,11 @@
-## VentanaMetodoPago.py
-
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-class VCashTypes(QDialog):
+parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
+
+class PaymentMethod(QDialog):
 
     buttonClicked = pyqtSignal()
 
@@ -77,10 +77,10 @@ class VCashTypes(QDialog):
         self.frameGrid.setFixedSize(352, 340)
 
         # Crear botones de método de pago
-        self.create_payment_button('Yape', '../Imagenes/yapeImage.png', 0, 0)
-        self.create_payment_button('Plin', '../Imagenes/plinImage.png', 0, 1)
-        self.create_payment_button('Tarjeta', '../Imagenes/Credito.png', 1, 0)
-        self.create_payment_button('Efectivo', '../Imagenes/Efectivo.png', 1, 1)
+        self.create_payment_button('Yape', parent_dir + '/yapeImage.png', 0, 0)
+        self.create_payment_button('Plin', parent_dir + '/plinImage.png', 0, 1)
+        self.create_payment_button('Tarjeta', parent_dir + '/Credito.png', 1, 0)
+        self.create_payment_button('Efectivo', parent_dir + '/Efectivo.png', 1, 1)
 
         # Agregar Widgets 
         self.layoutVC.addWidget(self.textLabel)
