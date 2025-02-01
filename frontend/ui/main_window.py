@@ -4,13 +4,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import datetime
 
-# Obtener el path absoluto de la carpeta externa
-parent_dir = '/home/pato/RegistraBot/frontend/'
-
-# Añadirlo al sys.path
+parent_dir = '/home/pato/RegistraBot/backend/'
 sys.path.append(parent_dir)
-print('Updated sys.path:', sys.path)
+from modules.barcode_module.barcode_module import ScannerThread
 
+parent_dir = '/home/pato/RegistraBot/frontend/'
+sys.path.append(parent_dir)
 from widgets.numeric_keyboard_widget import NumericKeyboard
 from widgets.shopping_cart_widget import ShoppingCart
 
@@ -93,16 +92,21 @@ class DetectionWindows(QMainWindow):
         # LabelProductName
         self.frameProductLabel = QHBoxLayout(self.frameDetectionPanel)
         self.productName = QLabel(self.product_name, self.frameDetectionPanel)
-        #self.productName.setFixedSize(542, 50)
-        self.productName.setFixedSize(450, 50)
+        self.productName.setFixedSize(542, 50)
+        #self.productName.setFixedSize(450, 50)
         self.productName.setStyleSheet("background-color: rgba(255, 255, 255, 180); color: black; border-radius: 10px;")
         self.productName.setFont(self.H8)
         self.frameProductLabel.addWidget(self.productName)
 
         # Start Detection Button
-        self.control_button = QPushButton("Start", self.frameDetectionPanel)
-        self.frameProductLabel.addWidget(self.control_button)
+        self.scanner_thread = ScannerThread()
+        #self.control_button = QPushButton("Start", self.frameDetectionPanel)
 
+        self.scanner_thread.scanned_signal.connect(self.update_label)
+        #self.frameProductLabel.addWidget(self.control_button)
+        if not self.scanner_thread.isRunning():
+            self.scanner_thread.start()
+        
         # Box : Image + Items
         self.boxProduct = QLabel(self.frameDetectionPanel)
         self.boxProduct.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
@@ -171,7 +175,7 @@ class DetectionWindows(QMainWindow):
 
 
         ##########
-        self.update_product_info(product_name="galletas", product_isBulk=self.product_isBulk)
+        self.update_product_info(product_name="Lentejas", product_isBulk=self.product_isBulk)
         ##########
 
         self.itemsProductVC.addWidget(self.framePeso)
@@ -188,9 +192,6 @@ class DetectionWindows(QMainWindow):
         self.frameDetectionPanelVC.addSpacing(24)
         self.frameDetectionPanelVC.addWidget(self.boxProduct)
 
-        
-
-        
         # Work Panel
         self.frameWorkPanel = QLabel(self.mainFrame)
         self.frameWorkPanelVC = QVBoxLayout(self.frameWorkPanel)
@@ -261,7 +262,6 @@ class DetectionWindows(QMainWindow):
 
     def update_preciovalue(self, numero):
 
-        
         # Actualizar el texto del QLabel en tiempo real
         if not numero:
             formatted_value = "0.00"
@@ -283,7 +283,12 @@ class DetectionWindows(QMainWindow):
                 widget.deleteLater()  # Deletes the widget
             else:
                 layout.removeItem(item)  # For non-widget items like spacers
-
+    
+    def update_label(self, code):
+        self.product_name = "  " + code
+        self.productName.setText("  " + code)
+        
+            
     def update_product_info(self, product_name, product_isBulk=False, product_img_path=""):
         self.product_name = product_name
         self.product_img_path = product_img_path

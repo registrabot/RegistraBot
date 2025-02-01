@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -10,17 +11,17 @@ from frontend.widgets.sale_completion_widget import SaleCompletion
 class MainWindow_RB(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("RegistraBOT_Views")
-        self.setFixedSize(600, 1020)
+        self.setWindowTitle("RegistraBOT")
+        self.setFixedSize(600, 1024)
         #self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
 
         # Inicializar la ventana de empaquetado
         self.vEmpaquetado = DetectionWindows()
         self.setCentralWidget(self.vEmpaquetado)
 
-        # Conectar la señal del botón de registrar venta
+        # Conectar la senal del boton de registrar venta
         self.vEmpaquetado.botonregistrarVenta.clicked.connect(self.show_cash_types)
-
+        
     def show_cash_types(self):
         # Mostrar la ventana de métodos de pago
         self.vCashTypes = PaymentMethod(self)
