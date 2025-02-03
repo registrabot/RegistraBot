@@ -3,15 +3,17 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import datetime
+import sqlite3
 
-parent_dir = '/home/pato/RegistraBot/backend/'
+parent_dir = '/home/pato/RegistraBot/backend/modules'
 sys.path.append(parent_dir)
-from modules.barcode_module.barcode_module import ScannerThread
+from backend.modules.barcode_module.barcode_module import ScannerThread
 
 parent_dir = '/home/pato/RegistraBot/frontend/'
 sys.path.append(parent_dir)
 from widgets.numeric_keyboard_widget import NumericKeyboard
 from widgets.shopping_cart_widget import ShoppingCart
+from widgets.report_method_widget import ReportMethod
 
 class DetectionWindows(QMainWindow):
     def __init__(self):
@@ -30,6 +32,10 @@ class DetectionWindows(QMainWindow):
         self.product_quantity = 1
         self.product_weight = 0.5
         self.product_price = 0
+
+        # Connect Database
+        self.db_path = '/home/pato/RegistraBot/backend/database/BD_RegistraBOT.db'
+        self.connection = self.connect_to_database()
 
         # Init Variables
         self.input_digits = ""      
@@ -92,18 +98,24 @@ class DetectionWindows(QMainWindow):
         # LabelProductName
         self.frameProductLabel = QHBoxLayout(self.frameDetectionPanel)
         self.productName = QLabel(self.product_name, self.frameDetectionPanel)
-        self.productName.setFixedSize(542, 50)
-        #self.productName.setFixedSize(450, 50)
+        self.productName.setFixedSize(420, 50)
         self.productName.setStyleSheet("background-color: rgba(255, 255, 255, 180); color: black; border-radius: 10px;")
-        self.productName.setFont(self.H8)
-        self.frameProductLabel.addWidget(self.productName)
+        self.productName.setFont(self.H2)
 
         # Start Detection Button
         self.scanner_thread = ScannerThread()
-        #self.control_button = QPushButton("Start", self.frameDetectionPanel)
+        self.botonDashboard = QPushButton("Reporte", self.frameDetectionPanel)
+        self.botonDashboard.setFixedSize(110,50)
+        self.botonDashboard.setFont(self.H2)
+        self.botonDashboard.setFlat(True)
+        self.botonDashboard.setStyleSheet("background-color: #639C3B; color: white; border-radius: 15px;")
 
-        self.scanner_thread.scanned_signal.connect(self.update_label)
-        #self.frameProductLabel.addWidget(self.control_button)
+        self.frameProductLabel.addWidget(self.productName)
+        self.frameProductLabel.addWidget(self.botonDashboard)
+
+        self.botonDashboard.clicked.connect(self.verDashboard)
+
+        self.scanner_thread.scanned_signal.connect(self.barcode_scanned)
         if not self.scanner_thread.isRunning():
             self.scanner_thread.start()
         
@@ -113,10 +125,9 @@ class DetectionWindows(QMainWindow):
         self.boxProductHC = QHBoxLayout(self.boxProduct)
         self.boxProductHC.setContentsMargins(0, 0, 0, 0)
 
-        
-
             # Image Product
         self.imageBoxProduct = QLabel(self.boxProduct)
+        self.imageBoxProduct.setFixedSize(210,220)
         self.imageBoxProduct.setPixmap(QPixmap(parent_dir + "/assets/images/Lentejas.png"))
 
             # Items Product
@@ -175,7 +186,7 @@ class DetectionWindows(QMainWindow):
 
 
         ##########
-        self.update_product_info(product_name="Lentejas", product_isBulk=self.product_isBulk)
+        self.update_product_info(product_name="No hay producto", product_isBulk=self.product_isBulk)
         ##########
 
         self.itemsProductVC.addWidget(self.framePeso)
@@ -234,6 +245,16 @@ class DetectionWindows(QMainWindow):
         self.teclado_numerico.botonSalir.clicked.connect(self.ocultar_teclado)
         self.teclado_numerico.botonAniadir.clicked.connect(self.addToCart_currProduct)
 
+
+    def connect_to_database(self):
+        try:
+            connection = sqlite3.connect(self.db_path)
+            print("Conexión a la base de datos exitosa.")
+            return connection
+        except sqlite3.Error as e:
+            print(f"Error al conectar a la base de datos: {e}")
+        return None
+    
     def mostrar_metodoPago(self):
         self.ventana_metodoPago.show_in_center(self.geometry())
         self.ventana_metodoPago.show()
@@ -284,13 +305,35 @@ class DetectionWindows(QMainWindow):
             else:
                 layout.removeItem(item)  # For non-widget items like spacers
     
-    def update_label(self, code):
-        self.product_name = "  " + code
-        self.productName.setText("  " + code)
-        
+    def barcode_scanned(self, scanned_sku):
+        product_info = self.get_product_by_sku(scanned_sku)
+        print(product_info)
+        if product_info:
+            self.update_product_info(
+                product_name=product_info[0],
+                product_isBulk=False,
+                product_img_path=product_info[1]
+            )
+        else:
+            self.update_product_info(product_name="Producto no encontrado")
+
+    def get_product_by_sku(self, sku):
+        if not self.connection:
+            return None
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""
+                SELECT nombre_producto, path_image
+                FROM tb_catalogo_productos
+                WHERE sku = ?
+            """, (sku,))
+            return cursor.fetchone()
+        except sqlite3.Error as e:
+            print(f"Error al buscar el producto: {e}")
+            return None
             
     def update_product_info(self, product_name, product_isBulk=False, product_img_path=""):
-        self.product_name = product_name
+        self.product_name = str(product_name)[:40]
         self.product_img_path = product_img_path
         self.product_isBulk = product_isBulk
         self.product_quantity = 1
@@ -300,6 +343,12 @@ class DetectionWindows(QMainWindow):
         self.clear_layout(self.framePesoHC)
 
         self.productName.setText("  " +self.product_name)
+
+        if self.product_img_path:
+            pixmap = QPixmap(self.product_img_path)
+            scaled_pixmap = pixmap.scaled(210, 220, Qt.KeepAspectRatio, Qt.SmoothTransformation)  
+            self.imageBoxProduct.setPixmap(scaled_pixmap)
+            self.imageBoxProduct.setFixedSize(210, 220)
                                    
         if self.product_isBulk:
             self.pesoName = QLabel('Peso', self.framePeso)
@@ -314,7 +363,6 @@ class DetectionWindows(QMainWindow):
         if self.product_isBulk:
             self.pesoValue = QLabel(f"{self.product_weight:.2f} Kg" , self.framePeso)
             self.pesoValue.setFixedSize(174,45)
-            #self.pesoValue.setFixedHeight(45)
             self.pesoValue.setStyleSheet("margin: 0px;"
                                         "background-color: rgba(255, 255, 255, 180);" 
                                         "color: black; border-radius: 10px;")
@@ -331,6 +379,8 @@ class DetectionWindows(QMainWindow):
                                             "border-radius: 10px; "     # Bordes redondeados
                                             "background-color: #FFCA44; "  # Color de fondo 
                                             "color: #333333; "            # Color del texto
+                                            "font-weight: bold; "
+                                            "font-size: 18px;"
                                             "} ")
             self.btn_decrease.clicked.connect(self.decrease_quantity)
             self.btn_decrease.setFixedSize(45, 45)
@@ -354,6 +404,8 @@ class DetectionWindows(QMainWindow):
                                             "border-radius: 10px; "     # Bordes redondeados
                                             "background-color: #FFCA44; "  # Color de fondo
                                             "color: #333333; "            # Color del texto
+                                            "font-weight: bold; "
+                                            "font-size: 18px;"
                                             "} ")
 
             self.btn_increase.setFixedSize(45, 45)
@@ -405,3 +457,7 @@ class DetectionWindows(QMainWindow):
         now = datetime.now().strftime("%H:%M:%S")
         self.rbTimeBar.setText(now)  
         QTimer.singleShot(1000, self.update_clock)
+
+    def verDashboard(self):
+        self.dashboard = ReportMethod(self)  # Pasar self si necesita el padre
+        self.dashboard.show()

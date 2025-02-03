@@ -13,13 +13,13 @@ cursor.execute('''
     CREATE TABLE IF NOT EXISTS tb_catalogo_productos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sku TEXT NOT NULL,
+        nombre_producto TEXT NOT NULL,
         categoria_producto TEXT NOT NULL,
         subcategoria_producto TEXT NOT NULL,
-        tipo_envase TEXT NOT NULL,
-        marca TEXT NOT NULL,
-        tamaño REAL,
-        nombre_producto TEXT NOT NULL,
+        tamano REAL,
         unidad_medida TEXT,
+        marca TEXT NOT NULL,
+        tipo_envase TEXT NOT NULL,
         empresa_fabricante TEXT,
         path_image TEXT NOT NULL,
         insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP

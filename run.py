@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import *
 from frontend.ui.main_window import DetectionWindows
 from frontend.widgets.payment_method_widget import PaymentMethod
 from frontend.widgets.sale_completion_widget import SaleCompletion
+from frontend.widgets.report_method_widget import ReportMethod
 
 
 class MainWindow_RB(QMainWindow):
