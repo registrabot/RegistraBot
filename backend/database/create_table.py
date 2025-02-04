@@ -36,14 +36,12 @@ cursor.execute('''
         id_venta INTEGER  NOT NULL,
         id_bodega TEXT NOT NULL,
         sku TEXT NOT NULL,
-        peso NUMERIC NOT NULL,
         cantidad INTEGER NOT NULL,
         precio_unitario NUMERIC NOT NULL,       
         precio_total NUMERIC NOT NULL,
         medio_pago TEXT NOT NULL,
-        estado_venta TEXT NOT NULL,
         insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        enviado_tb INTEGER DEFAULT 0  -- 0 para no enviado, 1 para enviado
+        estado_carga INTEGER NOT NULL
     )
 ''')
 

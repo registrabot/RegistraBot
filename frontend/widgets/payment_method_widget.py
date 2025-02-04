@@ -1,8 +1,8 @@
+#payment_method_widget.py
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
 parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
 
 class PaymentMethod(QDialog):
@@ -15,6 +15,7 @@ class PaymentMethod(QDialog):
         self.setStyleSheet("background-color: white;")
         self.setFixedSize(475, 667)
         self.setModal(True)
+        self.products = []
 
         # Bordes Redondos
         self.setWindowModality(Qt.ApplicationModal)
@@ -36,10 +37,11 @@ class PaymentMethod(QDialog):
         self.H7 = QFont("Tahoma", 16, QFont.Bold)
         self.H8 = QFont("Tahoma", 14, QFont.Bold)
 
+        self.selected_payment_method = None
+
         # Frame Center
         self.mainFrame = QWidget(self.mainWidget)
         self.mainFrame.setGeometry(62, 75, 352, 531)
-        #self.mainFrame.setStyleSheet("background-color: white")
         self.layoutVC = QVBoxLayout(self.mainFrame)
         self.layoutVC.setContentsMargins(0, 0, 0, 0)
 
@@ -123,8 +125,7 @@ class PaymentMethod(QDialog):
         # Agregar el botón a la cuadrícula
         self.frameGridLayout.addWidget(button, row, col)
 
-        #button.clicked.connect(self.go_VentaFinalizada)
-        button.clicked.connect(self.emit_button_clicked)
+        button.clicked.connect(lambda: self.emit_button_clicked(text))
 
     def center_dialog(self):
         qr = self.frameGeometry()
@@ -145,5 +146,21 @@ class PaymentMethod(QDialog):
 
         self.show()
 
-    def emit_button_clicked(self):
+    def emit_button_clicked(self, payment_method):
+        if payment_method:
+            self.add_payment(payment_method)
         self.buttonClicked.emit()
+
+    def set_product_list(self, product_list):
+        self.products = product_list
+
+    def add_payment(self, payment):
+        for product in self.products:
+            if isinstance(product, dict):  # Verifica que sea un diccionario
+                product["medio_pago"] = payment
+            else:
+                print("Advertencia: un producto no es un diccionario:", product)
+    
+        print(self.products)
+
+        return self.products

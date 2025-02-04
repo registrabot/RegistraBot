@@ -1,16 +1,19 @@
+#shopping_cart_widget.py
 import sys
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication,QFrame,  QWidget, QVBoxLayout, QScrollArea, QLabel, QPushButton, QHBoxLayout
 )
 from PyQt5.QtGui import QPixmap, QIcon, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
 
 class ProductWidget(QWidget):
-    def __init__(self, name, unit_price, update_total_callback, quantity=1, weight=0, is_bulk=False):
+    product_deleted = pyqtSignal(str)
+    def __init__(self, sku, name, unit_price, update_total_callback, quantity=1, weight=0, is_bulk=False):
         super().__init__()
+        self.sku = sku
         self.name = name
         self.unit_price = unit_price
         self.is_bulk = is_bulk
@@ -32,7 +35,6 @@ class ProductWidget(QWidget):
 
         # Nombre del producto
         self.name_label = QLabel(self.name, self)
-        #self.name_label.setFixedWidth(120) 
         layout.addWidget(self.name_label)
 
         # Botón para reducir cantidad
@@ -80,7 +82,6 @@ class ProductWidget(QWidget):
             pixmap = QPixmap(parent_dir + "/tachito.png")
             self.btn_delete.setIcon(QIcon(pixmap))
             self.btn_delete.setIconSize(pixmap.size())  # Ajustar el tamaño del icono al tamaño original de la imagen
-            #self.btn_delete.setFixedSize(pixmap.size())
             self.btn_delete.setFixedSize(40, 40)
             self.update_delete_button()
             self.btn_delete.clicked.connect(self.delete_product)
@@ -98,7 +99,6 @@ class ProductWidget(QWidget):
             pixmap = QPixmap(parent_dir + "/tachito.png")
             self.btn_delete_bulk.setIcon(QIcon(pixmap))
             self.btn_delete_bulk.setIconSize(pixmap.size())  # Ajustar el tamaño del icono al tamaño original de la imagen
-            #self.btn_delete_bulk.setFixedSize(pixmap.size())  # Ajustar el tamaño del botón al tamaño de la imagen
             self.btn_delete_bulk.setFixedSize(40, 40)
             # Hacer que el botón sea solo la imagen, sin bordes ni fondo adicional
             self.btn_delete_bulk.setStyleSheet("border: none; background-color: transparent;")
@@ -137,6 +137,7 @@ class ProductWidget(QWidget):
         self.btn_delete.setEnabled(self.quantity > 1)
 
     def delete_product(self):
+        self.product_deleted.emit(self.name)
         self.setParent(None)  # Elimina el widget del carrito
         self.update_total_callback()
 
@@ -152,6 +153,8 @@ class ShoppingCart(QWidget):
         self.setWindowTitle("Carrito de Compras")
         #self.setFixedSize(520, 520)  # Tamaño fijo de la ventana
         self.cart_total_amount = 0
+        self.products_in_cart = []  # List to keep track of products added
+        self.products = []
         # Layout principal
         main_layout = QVBoxLayout(self)
 
@@ -186,7 +189,6 @@ class ShoppingCart(QWidget):
         # Contenedor para los productos
         self.scroll_content = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_content)  # Layout de los productos
-        #self.scroll_layout.setSpacing(10)  # Separación entre los elementos
 
         # Configurar el contenido dentro del área de scroll
         scroll_area.setWidget(self.scroll_content)
@@ -195,7 +197,7 @@ class ShoppingCart(QWidget):
         self.total_widget = QWidget()  # Envolver en un widget
         self.cart_total_amount_layout = QHBoxLayout(self.total_widget)
 
-        font = QFont("Arial", 20)  # Font family and size
+        font = QFont("Tahoma", 20)  # Font family and size
 
         self.total_label = QLabel("Total a pagar:")
         self.total_label.setFont(font)
@@ -210,28 +212,57 @@ class ShoppingCart(QWidget):
         # Agregar el área de scroll al layout principal
         main_layout.addWidget(scroll_area)
         main_layout.addWidget(self.total_widget)
-
-        # Agregar productos de ejemplo
-        """self.add_product("Producto 1", 10.00)
-        self.add_product("Producto 2", 15.50)
-        self.add_product("Producto a Granel", 5.00, 1.33, is_bulk=True)
-        self.add_product("Producto a Granel", 2.00, 1.9, is_bulk=True)
-        self.add_product("Producto a Granel", 3.00, 5, is_bulk=True)"""
-
-    def add_product(self, name, unit_price, quantity = 1, weight = 0, is_bulk=False):
-        product_widget = ProductWidget(name, unit_price, self.update_total, quantity, weight, is_bulk)
+    
+    def add_product(self, sku, name, unit_price, quantity = 1, weight = 0, is_bulk=False):
+        if not is_bulk:
+            for product in self.products_in_cart:
+                if product.name == name:
+                    product.quantity += quantity  # Update quantity if product is already in cart
+                    product.quantity_label.setText(str(product.quantity))  # Update label
+                    self.update_total()  # Recalculate total
+                    return  # Exit after updating existing product
+        product_widget = ProductWidget(sku, name, unit_price, self.update_total, quantity, weight, is_bulk)
+        product_widget.product_deleted.connect(self.remove_product_from_list)
         self.scroll_layout.addWidget(product_widget)
+
+        # Add to products list
+        self.products_in_cart.append(product_widget)
+
         self.update_total()
 
     def update_total(self):
         total = 0
-        for i in range(self.scroll_layout.count()):
-            product_widget = self.scroll_layout.itemAt(i).widget()
+        for product_widget in self.products_in_cart:
             total += product_widget.get_total_price()
         self.cart_total_amount_label.setText(f"S/ {total:.2f}")
 
-"""if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = ShoppingCart()
-    window.show()
-    sys.exit(app.exec_())"""
+    def get_products_list(self):
+        self.products = []
+        for i in range(self.scroll_layout.count()):
+            product_widget = self.scroll_layout.itemAt(i).widget()
+            if isinstance(product_widget, ProductWidget):
+                product_info = {
+                    "sku": product_widget.sku,
+                    "name": product_widget.name,
+                    "unit_price": product_widget.unit_price,
+                    "quantity": product_widget.quantity if not product_widget.is_bulk else None,
+                    "weight": product_widget.weight if product_widget.is_bulk else None,
+                    "total_price": product_widget.get_total_price()
+                }
+                self.products.append(product_info)
+        return self.products
+         
+    def remove_product_from_list(self, name):
+        """Eliminar el producto de la lista cuando se recibe la señal de eliminación"""
+        self.products_in_cart = [p for p in self.products_in_cart if p.name != name]
+        self.update_total()
+
+    def reset_cart(self):
+        for i in reversed(range(self.scroll_layout.count())):  
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+    
+        self.products_in_cart.clear()  # Vaciar la lista de productos
+        self.cart_total_amount = 0
+        self.cart_total_amount_label.setText("S/0.00")  # Reiniciar la etiqueta del total

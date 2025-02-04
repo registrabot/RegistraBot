@@ -6,12 +6,12 @@ from time import sleep
 import sqlite3
 import numpy as np
 
-# Agregar el directorio al sistema de rutas
-sys.path.append('/home/pato/RegistraBot/backend/modules/')
 parent_dir = '/home/pato/RegistraBot/frontend/assets/images'
-from ticketPrinter_module.TicketPrinterClass import TicketPrinter   
 
 class SaleCompletion(QDialog):
+    
+    buttonClicked = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Ventana Venta Finalizada")
@@ -56,20 +56,17 @@ class SaleCompletion(QDialog):
         self.labelVenta.setFont(self.H8)
         self.labelVenta.setAlignment(Qt.AlignCenter)
 
-        # Boton Imprimir
-        self.botonImprimir = QPushButton("Imprimir Voucher", self.mainFrame)
-        self.botonImprimir.setFixedSize(345,64)
-        self.botonImprimir.setFont(self.H2)
-        self.botonImprimir.setAutoFillBackground(False)
-        self.botonImprimir.setStyleSheet("background-color: #639C3B; color: white; border-radius: 15px;")
-        self.botonImprimir.setIcon(QIcon(parent_dir + "/Sticky.png"))
-        self.botonImprimir.setIconSize(QSize(44, 44))
-        self.botonImprimir.setFlat(True)
-        self.botonImprimir.setLayoutDirection(Qt.RightToLeft)
-        self.botonImprimir.clicked.connect(self.imprimir_voucher)
+        # Boton Finalizar Compra
+        self.botonFinalizar = QPushButton("Finalizar Compra", self.mainFrame)
+        self.botonFinalizar.setFixedSize(345,64)
+        self.botonFinalizar.setFont(self.H2)
+        self.botonFinalizar.setAutoFillBackground(False)
+        self.botonFinalizar.setStyleSheet("background-color: #639C3B; color: white; border-radius: 15px;")
+        self.botonFinalizar.setFlat(True)
+        self.botonFinalizar.setLayoutDirection(Qt.RightToLeft)
 
         # Boton Salir
-        self.botonSalir = QPushButton("Salir", self.mainFrame)
+        self.botonSalir = QPushButton("Cancelar Compra", self.mainFrame)
         self.botonSalir.setFixedSize(345,64)
         self.botonSalir.setFont(self.H2)
         self.botonSalir.setAutoFillBackground(False)
@@ -84,10 +81,9 @@ class SaleCompletion(QDialog):
         self.layoutVC.addSpacing(30)
         self.layoutVC.addWidget(self.labelVenta)
         self.layoutVC.addSpacing(50)
-        self.layoutVC.addWidget(self.botonImprimir)
+        self.layoutVC.addWidget(self.botonFinalizar)
         self.layoutVC.addSpacing(25)
         self.layoutVC.addWidget(self.botonSalir)
-
 
         # Posicionar la ventana al centro
         self.center_dialog()
@@ -113,3 +109,4 @@ class SaleCompletion(QDialog):
     
     def imprimir_voucher(self):
         return print('imprimir')
+

@@ -14,6 +14,7 @@ sys.path.append(parent_dir)
 from widgets.numeric_keyboard_widget import NumericKeyboard
 from widgets.shopping_cart_widget import ShoppingCart
 from widgets.report_method_widget import ReportMethod
+from widgets.payment_method_widget import PaymentMethod
 
 class DetectionWindows(QMainWindow):
     def __init__(self):
@@ -26,12 +27,14 @@ class DetectionWindows(QMainWindow):
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
+        self.product_sku = ""
         self.product_name = ""
         self.product_img_path = ""
         self.product_isBulk = True
         self.product_quantity = 1
         self.product_weight = 0.5
         self.product_price = 0
+        self.ventana_metodoPago = PaymentMethod()
 
         # Connect Database
         self.db_path = '/home/pato/RegistraBot/backend/database/BD_RegistraBOT.db'
@@ -128,7 +131,7 @@ class DetectionWindows(QMainWindow):
             # Image Product
         self.imageBoxProduct = QLabel(self.boxProduct)
         self.imageBoxProduct.setFixedSize(210,220)
-        self.imageBoxProduct.setPixmap(QPixmap(parent_dir + "/assets/images/Lentejas.png"))
+        self.imageBoxProduct.setPixmap(QPixmap("backend/database/product_images/NO-FOUND.png"))
 
             # Items Product
         self.itemsProduct = QLabel(self.boxProduct)
@@ -141,8 +144,6 @@ class DetectionWindows(QMainWindow):
         self.framePeso.setFixedSize(309,60)
         self.framePesoHC = QHBoxLayout(self.framePeso)
         self.framePesoHC.setContentsMargins(0, 0, 0, 0)
-
-        
 
             # Precio x kg Label
         self.framePrecio = QLabel(self.itemsProduct)
@@ -186,7 +187,7 @@ class DetectionWindows(QMainWindow):
 
 
         ##########
-        self.update_product_info(product_name="No hay producto", product_isBulk=self.product_isBulk)
+        self.update_product_info(product_sku="", product_name="Producto no encontrado", product_isBulk=self.product_isBulk)
         ##########
 
         self.itemsProductVC.addWidget(self.framePeso)
@@ -245,7 +246,6 @@ class DetectionWindows(QMainWindow):
         self.teclado_numerico.botonSalir.clicked.connect(self.ocultar_teclado)
         self.teclado_numerico.botonAniadir.clicked.connect(self.addToCart_currProduct)
 
-
     def connect_to_database(self):
         try:
             connection = sqlite3.connect(self.db_path)
@@ -254,10 +254,6 @@ class DetectionWindows(QMainWindow):
         except sqlite3.Error as e:
             print(f"Error al conectar a la base de datos: {e}")
         return None
-    
-    def mostrar_metodoPago(self):
-        self.ventana_metodoPago.show_in_center(self.geometry())
-        self.ventana_metodoPago.show()
 
     def mostrar_teclado(self, event):
         # Mostrar el widget del teclado numérico
@@ -295,6 +291,7 @@ class DetectionWindows(QMainWindow):
         self.precioValue.setText("S/ " + formatted_value)
 
         self.update_subTotal()
+        
 
     def clear_layout(self, layout):
         while layout.count():
@@ -310,12 +307,13 @@ class DetectionWindows(QMainWindow):
         print(product_info)
         if product_info:
             self.update_product_info(
-                product_name=product_info[0],
+                product_sku=product_info[0],
+                product_name=product_info[1],
                 product_isBulk=False,
-                product_img_path=product_info[1]
+                product_img_path=product_info[2]
             )
         else:
-            self.update_product_info(product_name="Producto no encontrado")
+            self.update_product_info(product_sku="", product_name="Producto no encontrado")
 
     def get_product_by_sku(self, sku):
         if not self.connection:
@@ -323,7 +321,7 @@ class DetectionWindows(QMainWindow):
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
-                SELECT nombre_producto, path_image
+                SELECT sku, nombre_producto, path_image
                 FROM tb_catalogo_productos
                 WHERE sku = ?
             """, (sku,))
@@ -332,7 +330,8 @@ class DetectionWindows(QMainWindow):
             print(f"Error al buscar el producto: {e}")
             return None
             
-    def update_product_info(self, product_name, product_isBulk=False, product_img_path=""):
+    def update_product_info(self, product_sku, product_name, product_isBulk=False, product_img_path=""):
+        self.product_sku = product_sku
         self.product_name = str(product_name)[:40]
         self.product_img_path = product_img_path
         self.product_isBulk = product_isBulk
@@ -343,6 +342,10 @@ class DetectionWindows(QMainWindow):
         self.clear_layout(self.framePesoHC)
 
         self.productName.setText("  " +self.product_name)
+
+        if self.product_name == "Producto no encontrado":
+            self.imageBoxProduct.setPixmap(QPixmap("backend/database/product_images/NO-FOUND.png"))
+            self.imageBoxProduct.setFixedSize(210, 220)
 
         if self.product_img_path:
             pixmap = QPixmap(self.product_img_path)
@@ -388,7 +391,6 @@ class DetectionWindows(QMainWindow):
 
             self.pesoValue = QLabel(str(self.product_quantity), self.framePeso)
             self.pesoValue.setFixedSize(65,45)
-            #self.pesoValue.setFixedHeight(45)
             self.pesoValue.setStyleSheet("margin: 0px;"
                                         "background-color: rgba(255, 255, 255, 180);" 
                                         "color: black; border-radius: 10px;")
@@ -436,22 +438,28 @@ class DetectionWindows(QMainWindow):
         else:
             subtotal_value_str = f"S/ {self.product_price*self.product_quantity:.2f}"
 
-        self.subTotalValueLabel.setText(subtotal_value_str) #(f"S/ {value // 100}.{value % 100:02}")
+        self.subTotalValueLabel.setText(subtotal_value_str)
     
     def addToCart_currProduct(self):
         self.teclado_numerico.numeros_presionados.clear
-        if self.product_name == "":
+
+        if self.product_name == "Producto no encontrado":
             return
         
         if self.product_isBulk:
-            self.listProductWidget.add_product(self.product_name, self.product_price, self.product_quantity)
+            self.listProductWidget.add_product(self.product_sku, self.product_name, self.product_price, self.product_quantity)
         else:
-            self.listProductWidget.add_product(self.product_name, self.product_price, self.product_quantity, self.product_weight, self.product_isBulk)
+            self.listProductWidget.add_product(self.product_sku, self.product_name, self.product_price, self.product_quantity, self.product_weight, self.product_isBulk)
 
+        product_sku = ""
         product_name = ""
         product_isBulk = False
         product_img_path = ""
-        self.update_product_info(product_name, product_isBulk, product_img_path)
+        self.update_product_info(product_sku, product_name, product_isBulk, product_img_path)
+        self.product_price = 0.0
+        self.listProductWidget.get_products_list()
+        self.teclado_numerico.reset_keyboard()
+        self.ocultar_teclado()
 
     def update_clock(self):
         now = datetime.now().strftime("%H:%M:%S")
@@ -461,3 +469,7 @@ class DetectionWindows(QMainWindow):
     def verDashboard(self):
         self.dashboard = ReportMethod(self)  # Pasar self si necesita el padre
         self.dashboard.show()
+
+    def reset_product_info(self):
+        self.update_product_info("", "Producto no encontrado", False, "backend/database/product_images/NO-FOUND.png")
+        self.listProductWidget.reset_cart()

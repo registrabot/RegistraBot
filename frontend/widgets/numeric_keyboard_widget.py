@@ -175,3 +175,6 @@ class NumericKeyboard(QWidget):
         # Borra el último número ingresado
         self.numeros_presionados = self.numeros_presionados[:-1]
         self.numero_actualizado.emit(''.join(self.numeros_presionados))
+
+    def reset_keyboard(self):
+        self.numeros_presionados = []
