@@ -265,16 +265,19 @@ class ReportMethod(QDialog):
 
         # Top 5 productos más vendidos
         cursor.execute("""
-            SELECT sku, SUM(cantidad) as total_cantidad 
-            FROM tb_registro_ventas
-            WHERE DATE(insert_date) BETWEEN ? AND ?
-            GROUP BY sku
+            SELECT
+                cp.nombre_producto, 
+                SUM(rv.cantidad) AS total_cantidad 
+            FROM tb_registro_ventas rv
+            JOIN tb_catalogo_productos cp ON rv.sku = cp.sku
+            WHERE DATE(rv.insert_date) BETWEEN ? AND ?
+            GROUP BY cp.nombre_producto
             ORDER BY total_cantidad DESC
             LIMIT 5
         """, (start_date, end_date))
         top_products = cursor.fetchall()
 
-        top_products_text = "\n".join([f"{idx+1}. {sku}: {cantidad}" for idx, (sku, cantidad) in enumerate(top_products)])
+        top_products_text = "\n".join([f"{idx+1}. {nombre_producto[:15]}: {cantidad}" for idx, (nombre_producto, cantidad) in enumerate(top_products)])
         self.top_products_num.setText(top_products_text)
         
         cursor.close()
