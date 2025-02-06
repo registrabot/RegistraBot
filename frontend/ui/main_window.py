@@ -324,7 +324,7 @@ class DetectionWindows(QMainWindow):
                 SELECT sku, nombre_producto, path_image
                 FROM tb_catalogo_productos
                 WHERE sku = ?
-            """, (sku,))
+            """, (float(sku),))
             return cursor.fetchone()
         except sqlite3.Error as e:
             print(f"Error al buscar el producto: {e}")
@@ -443,7 +443,7 @@ class DetectionWindows(QMainWindow):
     def addToCart_currProduct(self):
         self.teclado_numerico.numeros_presionados.clear
 
-        if self.product_name == "Producto no encontrado":
+        if self.product_name == "Producto no encontrado" or self.product_price == 0:
             return
         
         if self.product_isBulk:

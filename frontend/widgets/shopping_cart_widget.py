@@ -216,7 +216,7 @@ class ShoppingCart(QWidget):
     def add_product(self, sku, name, unit_price, quantity = 1, weight = 0, is_bulk=False):
         if not is_bulk:
             for product in self.products_in_cart:
-                if product.name == name:
+                if product.name == name and product.unit_price == unit_price:
                     product.quantity += quantity  # Update quantity if product is already in cart
                     product.quantity_label.setText(str(product.quantity))  # Update label
                     self.update_total()  # Recalculate total
