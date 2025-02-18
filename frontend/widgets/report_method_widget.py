@@ -3,6 +3,7 @@ import signal
 import calendar
 import sqlite3
 from datetime import date
+import datetime
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -12,20 +13,24 @@ class ReportMethod(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Ventana Reporte Bodeguero")
+        # Bordes Redondos
+        self.setWindowModality(Qt.ApplicationModal)# Qt.Window | Qt.FramelessWindowHint
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowCloseButtonHint)
+        #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+
         self.setStyleSheet("background-color: white;")
         self.setFixedSize(556, 932)
-        self.setModal(True)
+        #self.setModal(True)
 
         self.current_month = QDate.currentDate().month()
         self.current_year = QDate.currentDate().year()
+        self.current_day = QDate.currentDate().day()
 
         self.db_path = '/home/pato/RegistraBot/backend/database/BD_RegistraBOT.db'
         self.connection = self.connect_to_database()
 
-        # Bordes Redondos
-        self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        
 
         # Widget principal con bordes redondeados
         self.mainWidget = QWidget(self)
@@ -58,7 +63,7 @@ class ReportMethod(QDialog):
         self.textLabel.setAlignment(Qt.AlignCenter)
         self.textLabel.setFont(self.H5)
         self.textLabel.setStyleSheet("background-color: #FDA22A; border: none; color: white")
-
+        self.textLabel.setFixedSize(552,150)
         self.botonBackHome = QPushButton('Regresar', self.mainFrame)
         self.botonBackHome.setGeometry(15, 15, 120, 40)
         self.botonBackHome.setFont(self.H2)
@@ -119,22 +124,50 @@ class ReportMethod(QDialog):
         self.yearWidgetHC.addWidget(self.yearLabel)
         self.yearWidgetHC.addWidget(self.yearRightButton)
 
+        # Día
+        self.dayWidget = QWidget(self.mainFrame)
+        self.dayWidget.setStyleSheet("color: white; background-color: #639C3B; border-radius: 10px; border: none; font-weight: bold;")
+        self.dayLayout = QHBoxLayout(self.dayWidget)
+
+        self.dayLeftButton = QPushButton("◀")
+        self.dayLeftButton.setFont(self.H1)
+        self.dayLeftButton.setStyleSheet("border: none; background: transparent;")
+        self.dayLeftButton.clicked.connect(self.on_day_left_button_pressed)
+
+        self.dayLabel = QLabel(str(self.current_day))
+        self.dayLabel.setFont(self.H4)
+        self.dayLabel.setAlignment(Qt.AlignCenter)
+
+        self.dayRightButton = QPushButton("▶")
+        self.dayRightButton.setFont(self.H1)
+        self.dayRightButton.setStyleSheet("border: none; background: transparent;")
+        self.dayRightButton.clicked.connect(self.on_day_right_button_pressed)
+
+        self.dayLayout.addWidget(self.dayLeftButton)
+        self.dayLayout.addWidget(self.dayLabel)
+        self.dayLayout.addWidget(self.dayRightButton)
+
         self.dateSelectors_layout = QHBoxLayout(self.dateLabel)
-        self.dateSelectors_layout.addWidget(self.monthWidget)
         self.dateSelectors_layout.addWidget(self.yearWidget)
+        self.dateSelectors_layout.addWidget(self.monthWidget)
+        self.dateSelectors_layout.addWidget(self.dayWidget)
 
          # Indicadores
-        self.total_sales_label = QLabel(self.mainFrame)
-        self.total_sales_label.setStyleSheet("border: none;")
-        self.total_salesHC = QHBoxLayout(self.total_sales_label)
+        self.indicadores_layout = QVBoxLayout(self.mainFrame)
 
-        self.total_sales_text = QLabel("Total Ventas: ", self.total_sales_label)
+        self.total_salesHC = QHBoxLayout() #self.total_sales_label
+
+        #self.total_sales_label = QLabel(self.mainFrame)
+        #self.total_sales_label.setStyleSheet("border: none;")
+        
+        self.total_sales_text = QLabel("Total Ventas: ")
         self.total_sales_text.setStyleSheet("background-color: none; border: none")
         self.total_sales_text.setFont(self.H8)
         self.total_sales_text.setAlignment(Qt.AlignCenter)
+        self.total_sales_text.setFixedSize(150,60)
 
-        self.total_sales_num = QLabel("0.00", self.total_sales_label)
-        self.total_sales_num.setFixedHeight(65)
+        self.total_sales_num = QLabel("0.00")
+        self.total_sales_num.setFixedSize(350,60)
         self.total_sales_num.setStyleSheet("color: black; font-weight: bold; border: 2px solid #FDA22A;")
         self.total_sales_num.setAlignment(Qt.AlignCenter)
         self.total_sales_num.setFont(self.H9)
@@ -142,18 +175,18 @@ class ReportMethod(QDialog):
         self.total_salesHC.addWidget(self.total_sales_text)
         self.total_salesHC.addWidget(self.total_sales_num)
 
-        self.count_sales_label = QLabel(self.mainFrame)
-        self.count_sales_label.setStyleSheet("border: none;")
-        self.count_salesHC = QHBoxLayout(self.count_sales_label)
+        #self.count_sales_label = QLabel(self.mainFrame)
+        #self.count_sales_label.setStyleSheet("border: none;")
+        self.count_salesHC = QHBoxLayout()
 
-        self.count_sales_text = QLabel("Cantidad Ventas: ", self.count_sales_label)
-        self.count_sales_text.setStyleSheet("background-color: none;")
+        self.count_sales_text = QLabel("Cantidad\n Ventas: ")
+        self.count_sales_text.setFixedSize(150,80)
+        self.count_sales_text.setStyleSheet("background-color: none; border: none")
         self.count_sales_text.setFont(self.H8)
         self.count_sales_text.setAlignment(Qt.AlignCenter)
 
-        self.count_sales_num = QLabel("0.00", self.count_sales_label)
-        self.count_sales_num.setFixedHeight(65)
-        #self.count_sales_num.setStyleSheet("background-color: #FDA22A; color: white; font-weight: bold;")
+        self.count_sales_num = QLabel("0.00")
+        self.count_sales_num.setFixedSize(350,60)
         self.count_sales_num.setStyleSheet("color: black; font-weight: bold; border: 2px solid #FDA22A;")
         self.count_sales_num.setAlignment(Qt.AlignCenter)
         self.count_sales_num.setFont(self.H9)
@@ -161,30 +194,48 @@ class ReportMethod(QDialog):
         self.count_salesHC.addWidget(self.count_sales_text)
         self.count_salesHC.addWidget(self.count_sales_num)
 
-        self.top_products_label = QLabel(self.mainFrame)
-        self.top_products_label.setStyleSheet("border: none;")
-        self.top_productsHC = QHBoxLayout(self.top_products_label)
+        #self.top_products_label = QLabel(self.mainFrame)
+        #self.top_products_label.setStyleSheet("border: non")e;
+        self.top_productsVC = QVBoxLayout()
 
-        self.top_products_text = QLabel("Top 5 Productos: ", self.top_products_label)
-        self.top_products_text.setStyleSheet("background-color: none;")
+        self.top_products_text = QLabel("Productos más vendidos: ")
+        self.top_products_text.setStyleSheet("background-color: none")
         self.top_products_text.setFont(self.H8)
         self.top_products_text.setAlignment(Qt.AlignCenter)
+        self.top_products_text.setFixedSize(500,60)
 
-        self.top_products_num = QLabel("", self.top_products_label)
+        self.top_products_num = QLabel("")
         #self.top_products_num.setStyleSheet("background-color: #FDA22A; color: white; font-weight: bold;")
         self.top_products_num.setStyleSheet("color: black; font-weight: bold; border: 2px solid #FDA22A;")
-        self.top_products_num.setAlignment(Qt.AlignCenter)
-        self.top_products_num.setFont(self.H4)
+        self.top_products_num.setWordWrap(True)
+        #self.top_products_num.setFixedSize(350,185)
 
-        self.top_productsHC.addWidget(self.top_products_text)
-        self.top_productsHC.addWidget(self.top_products_num)
+        self.top_products_num.setFixedSize(500,450)
+        self.top_products_num.setAlignment(Qt.AlignLeft)
+        self.top_products_num.setFont(self.H4)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setContentsMargins(0, 0, 0, 0)
+        self.scroll_area.setWidgetResizable(True)  # Permite redimensionar el QLabel dentro del scroll
+        self.scroll_area.setStyleSheet("border: none;")
         
+        self.scroll_area.setFixedSize(500,450)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        self.scroll_area.setWidget(self.top_products_num)
+
+        self.top_productsVC.setAlignment(Qt.AlignCenter)
+        self.top_productsVC.addWidget(self.top_products_text)
+        self.top_productsVC.addWidget(self.scroll_area)
+        
+        #self.indicadores_layout.setAlignment(Qt.AlignTop)
+        self.indicadores_layout.addLayout(self.total_salesHC)
+        self.indicadores_layout.addLayout(self.count_salesHC)
+        self.indicadores_layout.addLayout(self.top_productsVC)
+
+        #self.layoutVC.setAlignment(Qt.AlignTop)
         # Agregar Widgets 
         self.layoutVC.addWidget(self.textLabel)
         self.layoutVC.addWidget(self.dateLabel)
-        self.layoutVC.addWidget(self.total_sales_label)
-        self.layoutVC.addWidget(self.count_sales_label)
-        self.layoutVC.addWidget(self.top_products_label)
+        self.layoutVC.addLayout(self.indicadores_layout)
 
         # Posicionar la ventana al centro
         self.center_dialog()
@@ -214,11 +265,46 @@ class ReportMethod(QDialog):
         else:
             self.current_month += 1
         self.update_date_labels()
+    
+    def on_day_left_button_pressed(self):
+        if self.current_day == 1:
+            # Si está en el primer día, retrocede al último día del mes anterior
+            if self.current_month == 1:
+                self.current_month = 12
+                self.current_year -= 1
+            else:
+                self.current_month -= 1
+            self.current_day = calendar.monthrange(self.current_year, self.current_month)[1]
+        else:
+            self.current_day -= 1
+        self.update_date_labels()
+
+    def on_day_right_button_pressed(self):
+        last_day = calendar.monthrange(self.current_year, self.current_month)[1]
+        if self.current_day == last_day:
+            # Si está en el último día, avanza al primer día del mes siguiente
+            if self.current_month == 12:
+                self.current_month = 1
+                self.current_year += 1
+            else:
+                self.current_month += 1
+            self.current_day = 1
+        else:
+            self.current_day += 1
+        self.update_date_labels()
 
     def update_date_labels(self):
         self.monthLabel.setText(self.get_month_in_spanish())
         self.yearLabel.setText(str(self.current_year))
-        start_date, end_date = self.get_start_and_end_dates(self.current_month, self.current_year)
+
+        last_day = calendar.monthrange(self.current_year, self.current_month)[1]
+        if self.current_day > last_day:
+            self.current_day = last_day
+
+        self.dayLabel.setText(str(self.current_day))
+        print(f"Fecha actualizada: {self.current_year}-{self.current_month:02d}-{self.current_day:02d}")
+
+        start_date, end_date = self.get_start_and_end_dates(self.current_month, self.current_year, self.current_day)
         self.update_indicators(start_date, end_date)
         print(f"Start date: {start_date}, End date: {end_date}")
 
@@ -237,10 +323,16 @@ class ReportMethod(QDialog):
         self.yearLabel.setText(str(self.current_year))
         self.update_date_labels()
     
-    def get_start_and_end_dates(self, month: int, year: int):
+    """def get_start_and_end_dates(self, month: int, year: int):
         start_date = f"{year}-{month:02d}-01"
         last_day = calendar.monthrange(year, month)[1]
         end_date = f"{year}-{month:02d}-{last_day}"
+        return start_date, end_date"""
+
+    def get_start_and_end_dates(self, month: int, year: int, day: int):
+        #current_day = datetime.datetime.today().day
+        start_date = f"{year}-{month:02d}-{day:02d}"
+        end_date = start_date  # Ambos son iguales al current_day
         return start_date, end_date
     
     def update_indicators(self, start_date, end_date):
@@ -273,11 +365,11 @@ class ReportMethod(QDialog):
             WHERE DATE(rv.insert_date) BETWEEN ? AND ?
             GROUP BY cp.nombre_producto
             ORDER BY total_cantidad DESC
-            LIMIT 5
+            LIMIT 50
         """, (start_date, end_date))
         top_products = cursor.fetchall()
 
-        top_products_text = "\n".join([f"{idx+1}. {nombre_producto[:15]}: {cantidad}" for idx, (nombre_producto, cantidad) in enumerate(top_products)])
+        top_products_text = "\n"+"\n".join([f" {idx+1}. {nombre_producto[:30]}: {cantidad}" for idx, (nombre_producto, cantidad) in enumerate(top_products)])
         self.top_products_num.setText(top_products_text)
         
         cursor.close()

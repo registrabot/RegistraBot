@@ -16,6 +16,7 @@ cursor.execute('''
         nombre_producto TEXT NOT NULL,
         categoria_producto TEXT NULL,
         subcategoria_producto TEXT NULL,
+        precio REAL DEFAULT 0,
         tamano REAL,
         unidad_medida TEXT,
         marca TEXT NULL,

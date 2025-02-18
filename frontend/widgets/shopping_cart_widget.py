@@ -35,11 +35,14 @@ class ProductWidget(QWidget):
 
         # Nombre del producto
         self.name_label = QLabel(self.name, self)
+        font = QFont("Tahoma", 12)
+        self.name_label.setFont(font)
         layout.addWidget(self.name_label)
 
         # Botón para reducir cantidad
         if not self.is_bulk:
             self.btn_decrease = QPushButton('-',self)
+            self.btn_decrease.setFont(font)
             self.btn_decrease.setStyleSheet("QPushButton { "
                              "border: none; "  # Establecer el color del contorno
                              "border-radius: 10px; "     # Bordes redondeados
@@ -54,10 +57,13 @@ class ProductWidget(QWidget):
             self.quantity_label = QLabel(str(self.quantity),self)
             self.quantity_label.setFixedWidth(34) 
             self.quantity_label.setAlignment(Qt.AlignCenter)
+            self.quantity_label.setFont(font)
             layout.addWidget(self.quantity_label)
 
             # Botón para aumentar cantidad
             self.btn_increase = QPushButton('+',self)
+            
+            self.btn_increase.setFont(font)
             self.btn_increase.setStyleSheet("QPushButton { "
                              "border: none; "  # Establecer el color del contorno
                              "border-radius: 10px; "     # Bordes redondeados
@@ -68,6 +74,7 @@ class ProductWidget(QWidget):
                              "background-color: green; "  # Color al pasar el ratón
                              "}")
             self.btn_increase.setFixedSize(30, 30)
+            
             self.btn_increase.clicked.connect(self.increase_quantity)
             layout.addWidget(self.btn_increase)
             
@@ -75,6 +82,7 @@ class ProductWidget(QWidget):
             self.unit_price_label = QLabel(f"S/ {self.unit_price:.2f}",self)
             self.unit_price_label.setFixedWidth(100) 
             self.unit_price_label.setAlignment(Qt.AlignCenter)
+            self.unit_price_label.setFont(font)
             layout.addWidget(self.unit_price_label)
 
             # Botón de eliminar

@@ -21,7 +21,8 @@ class SaleCompletion(QDialog):
 
         # Bordes Redondos
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         # Widget principal con bordes redondeados
@@ -53,7 +54,7 @@ class SaleCompletion(QDialog):
 
         # Label
         self.labelVenta = QLabel('Venta registrada', self.mainFrame)
-        self.labelVenta.setFont(self.H8)
+        self.labelVenta.setFont(self.H5)
         self.labelVenta.setAlignment(Qt.AlignCenter)
 
         # Boton Finalizar Compra

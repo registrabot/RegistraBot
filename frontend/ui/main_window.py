@@ -33,7 +33,8 @@ class DetectionWindows(QMainWindow):
         self.product_isBulk = True
         self.product_quantity = 1
         self.product_weight = 0.5
-        self.product_price = 0
+        self.product_price = 0.0
+        self.product_oldPrice = 0.0
         self.ventana_metodoPago = PaymentMethod()
 
         # Connect Database
@@ -303,25 +304,29 @@ class DetectionWindows(QMainWindow):
                 layout.removeItem(item)  # For non-widget items like spacers
     
     def barcode_scanned(self, scanned_sku):
+        print(scanned_sku)
         product_info = self.get_product_by_sku(scanned_sku)
         print(product_info)
         if product_info:
             self.update_product_info(
                 product_sku=product_info[0],
                 product_name=product_info[1],
+                product_price=product_info[2],
                 product_isBulk=False,
-                product_img_path=product_info[2]
+                product_img_path=product_info[3]
             )
         else:
             self.update_product_info(product_sku="", product_name="Producto no encontrado")
 
     def get_product_by_sku(self, sku):
+        print("test")
+        print(sku)
         if not self.connection:
             return None
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
-                SELECT sku, nombre_producto, path_image
+                SELECT sku, nombre_producto, precio, path_image
                 FROM tb_catalogo_productos
                 WHERE sku = ?
             """, (float(sku),))
@@ -330,15 +335,19 @@ class DetectionWindows(QMainWindow):
             print(f"Error al buscar el producto: {e}")
             return None
             
-    def update_product_info(self, product_sku, product_name, product_isBulk=False, product_img_path=""):
+    def update_product_info(self, product_sku, product_name, product_price = 0.0, product_isBulk=False, product_img_path=""):
         self.product_sku = product_sku
         self.product_name = str(product_name)[:40]
         self.product_img_path = product_img_path
         self.product_isBulk = product_isBulk
         self.product_quantity = 1
         self.product_weight = 0.0
-        self.product_price = 0.0
+        self.product_price = product_price
+        self.product_oldPrice = product_price
 
+        if self.product_price != 0:
+            self.teclado_numerico.numeros_presionados = self.separar_digitos(self.product_price)
+       
         self.clear_layout(self.framePesoHC)
 
         self.productName.setText("  " +self.product_name)
@@ -414,18 +423,22 @@ class DetectionWindows(QMainWindow):
             self.btn_increase.clicked.connect(self.increase_quantity)
             self.framePesoHC.addWidget(self.btn_increase)
             self.precioName.setText("Precio")
-
-            self.update_preciovalue(self.product_price)
+            
+            product_price_str =  str(int(product_price*100)) #f"{product_price:.2f}"
+            self.update_preciovalue(product_price_str)
         
     def decrease_quantity(self):
         if self.product_quantity > 1:
             self.product_quantity = self.product_quantity - 1  
         
         self.pesoValue.setText(str(self.product_quantity))
-    
+        self.update_subTotal()
+        
     def increase_quantity(self):
         self.product_quantity += 1 
         self.pesoValue.setText(str(self.product_quantity))
+        self.update_subTotal()
+
 
     def update_weight(self, weight):
         self.product_weight = weight
@@ -439,13 +452,34 @@ class DetectionWindows(QMainWindow):
             subtotal_value_str = f"S/ {self.product_price*self.product_quantity:.2f}"
 
         self.subTotalValueLabel.setText(subtotal_value_str)
-    
+    def separar_digitos(self, num):
+        # Redondear a 2 decimales y convertir a string
+        num_str = f"{num:.2f}"
+        
+        # Eliminar el punto decimal y convertir en lista de enteros
+        return [d for d in num_str if d.isdigit()]
+
+
     def addToCart_currProduct(self):
         self.teclado_numerico.numeros_presionados.clear
 
         if self.product_name == "Producto no encontrado" or self.product_price == 0:
             return
         
+        if self.product_oldPrice != self.product_price:
+            if not self.connection:
+                return None
+            try:
+                cursor = self.connection.cursor()
+                cursor.execute("""
+                    UPDATE tb_catalogo_productos
+                    SET precio = ?
+                    WHERE sku = ?
+                """, (self.product_price,self.product_sku))
+                self.connection.commit()
+            except sqlite3.Error as e:
+                print(f"Error al buscar el producto: {e}")
+                return None
         if self.product_isBulk:
             self.listProductWidget.add_product(self.product_sku, self.product_name, self.product_price, self.product_quantity)
         else:

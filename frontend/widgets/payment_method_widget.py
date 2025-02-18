@@ -19,7 +19,8 @@ class PaymentMethod(QDialog):
 
         # Bordes Redondos
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.Dialog  | Qt.FramelessWindowHint)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         # Widget principal con bordes redondeados
@@ -49,7 +50,7 @@ class PaymentMethod(QDialog):
         self.textLabel = QLabel('¿Con qué método de pago<br>vas a cobrar?', self.mainFrame)
         self.textLabel.setStyleSheet("color: #6C6C6C;")
         self.textLabel.setFixedSize(352, 58)
-        self.textLabel.setFont(self.H3)
+        self.textLabel.setFont(self.H5)
         self.textLabel.setAlignment(Qt.AlignCenter)
 
         # Monto Label
@@ -58,12 +59,12 @@ class PaymentMethod(QDialog):
         self.frameMontoHC = QHBoxLayout(self.frameMonto)
 
         self.labelMonto = QLabel('Pago total por:', self.frameMonto)
-        self.labelMonto.setFont(self.H4)
+        self.labelMonto.setFont(self.H5)
         self.labelMonto.setStyleSheet("color: #6C6C6C;")
         self.labelMonto.setAlignment(Qt.AlignCenter)
 
         self.montoNum = QLabel('S/ 12.50', self.frameMonto)
-        self.montoNum.setFont(self.H2)
+        self.montoNum.setFont(self.H5)
         self.montoNum.setAlignment(Qt.AlignCenter)
 
         self.frameMontoHC.addWidget(self.labelMonto)
@@ -153,7 +154,11 @@ class PaymentMethod(QDialog):
 
     def set_product_list(self, product_list):
         self.products = product_list
+        precio_total = 0
+        for product in self.products:
+            precio_total += product["total_price"]
 
+        self.montoNum.setText(f"S/ {precio_total:.2f}")
     def add_payment(self, payment):
         for product in self.products:
             if isinstance(product, dict):  # Verifica que sea un diccionario
