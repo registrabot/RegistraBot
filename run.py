@@ -110,7 +110,7 @@ class MainWindow_RB(QMainWindow):
         self.showFullScreen()
 
         self.product_list = []
-        self.id_bodega = 12345
+        self.id_bodega = 75331797
 
         # Inicializar la ventana de empaquetado
         self.vEmpaquetado = DetectionWindows()

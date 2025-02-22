@@ -329,7 +329,7 @@ class DetectionWindows(QMainWindow):
                 SELECT sku, nombre_producto, precio, path_image
                 FROM tb_catalogo_productos
                 WHERE sku = ?
-            """, (float(sku),))
+            """, (sku,))
             return cursor.fetchone()
         except sqlite3.Error as e:
             print(f"Error al buscar el producto: {e}")

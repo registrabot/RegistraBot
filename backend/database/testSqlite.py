@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 # Leer el archivo Excel
-df = pd.read_excel('raw_catalogo/raw_catalogo_productos.xlsx', sheet_name='Hoja 1')
+df = pd.read_excel('raw_catalogo/raw_catalogo_productos.xlsx', sheet_name='Hoja 1', dtype=str)
 
 # Añadir una columna con la fecha y hora actuales
 df['insert_date'] = datetime.now()
