@@ -358,10 +358,10 @@ class ReportMethod(QDialog):
         # Top 5 productos más vendidos
         cursor.execute("""
             SELECT
-                cp.nombre_producto, 
+                COALESCE(cp.nombre_producto, 'Producto no encontrado') AS nombre_producto,
                 SUM(rv.cantidad) AS total_cantidad 
             FROM tb_registro_ventas rv
-            JOIN tb_catalogo_productos cp ON rv.sku = cp.sku
+            LEFT JOIN tb_catalogo_productos cp ON rv.sku = cp.sku
             WHERE DATE(rv.insert_date) BETWEEN ? AND ?
             GROUP BY cp.nombre_producto
             ORDER BY total_cantidad DESC

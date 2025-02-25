@@ -315,8 +315,14 @@ class DetectionWindows(QMainWindow):
                 product_isBulk=False,
                 product_img_path=product_info[3]
             )
+
         else:
-            self.update_product_info(product_sku="", product_name="Producto no encontrado")
+            self.update_product_info( 
+                product_sku=scanned_sku, 
+                product_name="Producto no encontrado",
+                product_price=0,
+                product_isBulk=False,
+                product_img_path="backend/database/product_images/NO-FOUND.png")
 
     def get_product_by_sku(self, sku):
         print("test")
@@ -439,7 +445,6 @@ class DetectionWindows(QMainWindow):
         self.pesoValue.setText(str(self.product_quantity))
         self.update_subTotal()
 
-
     def update_weight(self, weight):
         self.product_weight = weight
         self.update_subTotal()
@@ -463,13 +468,14 @@ class DetectionWindows(QMainWindow):
     def addToCart_currProduct(self):
         self.teclado_numerico.numeros_presionados.clear
 
-        if self.product_name == "Producto no encontrado" or self.product_price == 0:
+        if self.product_price == 0 or self.product_name == "":
             return
         
-        if self.product_oldPrice != self.product_price:
+        if (self.product_oldPrice != self.product_price) and (self.product_name != "Producto no encontrado"):
             if not self.connection:
                 return None
             try:
+                
                 cursor = self.connection.cursor()
                 cursor.execute("""
                     UPDATE tb_catalogo_productos
