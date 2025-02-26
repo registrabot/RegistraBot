@@ -324,7 +324,6 @@ class DetectionWindows(QMainWindow):
                 product_isBulk=False,
                 product_img_path="backend/database/product_images/NO-FOUND.png")
 
-# Funcion nueva
     def get_product_by_sku(self, sku):
         print("test")
         print(sku)
