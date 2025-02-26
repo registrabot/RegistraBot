@@ -332,9 +332,9 @@ class DetectionWindows(QMainWindow):
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
-                SELECT sku, nombre_producto, precio, path_image
+                SELECT TRIM(sku), nombre_producto, precio, path_image
                 FROM tb_catalogo_productos
-                WHERE sku = ?
+                WHERE TRIM(sku) = ?
             """, (sku,))
             return cursor.fetchone()
         except sqlite3.Error as e:
